@@ -26,7 +26,7 @@
 
 void cmd_read_io_inputs(SUIInteractionFunctions * funcs) {
 	uint16_t readVal = io_inputs_value();
-	CDCWRITESTRING("\r\nInputs currently: ");
+	CDCWRITESTRING("\r\n Inputs currently: ");
 	cdc_write_dec_u16(readVal);
 	CDCWRITESTRING(", 0x");
 	cdc_write_u16_ln(readVal);

@@ -94,13 +94,14 @@ static CommandInfo commands[] = {
 				.hotkey = 'B',
 				.cb = cmd_uartbridge_baudrate
 		},
-
+#if SYSTEM_INPUTS_NUM > 0
 		{
 				.command = "readinputs",
 				.help = "Read inputs",
 				.hotkey = 'I',
 				.cb = cmd_read_io_inputs
 		},
+#endif
 
 		{
 				.command = "dumpstate",
@@ -146,32 +147,32 @@ static CommandInfo commands[] = {
 
 void sui_command_show_help(SUIInteractionFunctions * funcs) {
 	uint8_t i = 0;
-	const char * starsep =    "*************************************************************\r\n";
-	const char * starspacer = "*                                                           *\r\n";
+	const char * starsep =    " *************************************************************\r\n";
+	const char * starspacer = " *                                                           *\r\n";
 	BoardConfigPtrConst bc = boardconfig_get();
 	char buf[2];
 	buf[1] = '\0';
 
 	CDCWRITESTRING("\r\n\r\n");
 	CDCWRITESTRING(starsep);
-	        CDCWRITESTRING("*                      RifFPGA v" );
+	        CDCWRITESTRING(" *                      RifFPGA v" );
 	        cdc_write_dec_u8(bc->version.major);
 	        CDCWRITECHAR(".");
 	        cdc_write_dec_u8(bc->version.minor);
 	        CDCWRITECHAR(".");
 	        cdc_write_dec_u8(bc->version.patchlevel);
 	        CDCWRITESTRING("                       *\r\n");
-	        CDCWRITESTRING("*                   (C) 2025 Pat Deegan                     *\r\n");
+	        CDCWRITESTRING(" *                   (C) 2025 Pat Deegan                     *\r\n");
 			CDCWRITEFLUSH();
-	        CDCWRITESTRING("*                === Available Commands ===                 *\r\n");
+	        CDCWRITESTRING(" *                === Available Commands ===                 *\r\n");
 	        CDCWRITESTRING(starspacer);
 			CDCWRITEFLUSH();
 	funcs->wait();
-	        CDCWRITESTRING("*    command         key                                    *\r\n");
+	        CDCWRITESTRING(" *    command         key                                    *\r\n");
 	while (commands[i].command != NULL) {
 		buf[0] = commands[i].hotkey;
 
-		CDCWRITESTRING("* ");
+		CDCWRITESTRING(" * ");
 		CDCWRITESTRING(commands[i].command);
 
 		size_t cmdlen = strlen(commands[i].command);
@@ -204,7 +205,7 @@ void sui_command_show_help(SUIInteractionFunctions * funcs) {
 	}
 
 	CDCWRITESTRING(starspacer);
-    CDCWRITESTRING("*        Enter command (or key) to trigger function.        *\r\n");
+    CDCWRITESTRING(" *        Enter command (or key) to trigger function.        *\r\n");
 	CDCWRITEFLUSH();
 	CDCWRITESTRING(starspacer);
 	CDCWRITESTRING(starsep);

@@ -51,6 +51,7 @@ void sui_handle_request(writestring_func wr, readchar_func rd, charavail_func av
 		// CDCWRITESTRING("Got command:");
 		// cdc_write(input_buffer, numchars);
 		cmd->cb(&funcs);
+		CDCWRITESTRING("\r\n> ");
 		CDCWRITEFLUSH();
 	} else {
 		/*
