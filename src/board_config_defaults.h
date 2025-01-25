@@ -38,7 +38,7 @@
 #define PICO_DEFAULT_LED_PIN	PIN_RP_LED
 #endif
 
-#ifndef CFG_TUD_MAX_SPEED
-#define CFG_TUD_MAX_SPEED
+#ifndef BOARD_TUD_MAX_SPEED
+#define BOARD_TUD_MAX_SPEED	1
 #endif
 #endif /* BOARD_CONFIG_DEFAULTS_H_ */

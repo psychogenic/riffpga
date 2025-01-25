@@ -194,7 +194,8 @@ TINYUF2_CONST char howtoFile[] =
 	"accessed via the headers/PMODs.\r\n"
 	"There is also a serial device present to "
 	"allow for configuration and interaction with "
-	"the project via microcotb.  See https://microcotb.org\r\n";
+	"the project, to set the clocking, select the slot or, "
+	"for advanced users, via the uart bridge or microcotb (https://microcotb.org)\r\n";
 
 #ifdef TINYUF2_FAVICON_HEADER
 #include TINYUF2_FAVICON_HEADER

@@ -22,12 +22,13 @@
 #define _BOARD_DEFINITIONS_H_
 
 #include "board_includes.h"
+#include "board_config_defaults.h"
 
 #define UF2_VERSION "2.0.0"
-#define UF2_PRODUCT_NAME "ASIC Sim"
-#define UF2_BOARD_ID "Efabless Explain"
-#define UF2_INDEX_URL "https://psychogenic.com/asic_sim"
-#define UF2_VOLUME_LABEL "FPGAUPDATE"
+#define UF2_PRODUCT_NAME 	"riffpga"
+#define UF2_BOARD_ID 		BOARD_NAME
+#define UF2_INDEX_URL 		"https://psychogenic.com/riffpga"
+#define UF2_VOLUME_LABEL 	DRIVE_VOLUME_LABEL
 //define TINYUF2_FAVICON_HEADER
 
 #define TINYUF2_CONST

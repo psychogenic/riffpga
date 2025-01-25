@@ -22,7 +22,8 @@
 #ifndef CONFIG_DEFAULTS_EFAB_EXPLAIN_H_
 #define CONFIG_DEFAULTS_EFAB_EXPLAIN_H_
 
-#define BOARD_NAME		"Efabless Explain"
+#define BOARD_NAME          "Efabless Explain"
+#define DRIVE_VOLUME_LABEL  "FPGAUPDATE"
 
 #define BOARD_SYSTEM_CLOCK_FREQ_HZ		120000000ULL
 
