@@ -61,8 +61,8 @@ if (TARGET_PSYDMI)
 	set(PROJ_SUFFIX "psydmi")
 endif(TARGET_PSYDMI)
 
-set(PROJNAME "ASICSim_${PROJ_SUFFIX}")
-set(EXENAME "ASICSim_${PROJ_SUFFIX}")
+set(PROJNAME "riffpga_${PROJ_SUFFIX}")
+set(EXENAME "riffpga_${PROJ_SUFFIX}")
 project(${PROJNAME} C CXX ASM)
 
 # Initialise the Raspberry Pi Pico SDK

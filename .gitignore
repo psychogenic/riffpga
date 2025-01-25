@@ -1,4 +1,6 @@
 build/
+# source graphs
+*.dia 
 
 # Prerequisites
 *.d
