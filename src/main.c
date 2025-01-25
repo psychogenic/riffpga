@@ -39,6 +39,8 @@
 #include "uart_bridge.h"
 #include "io_inputs.h"
 
+
+
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
@@ -169,6 +171,7 @@ void tud_resume_cb(void) {
 void tud_and_blink_tasks(void) {
 	tud_task();
 	led_blinking_task();
+	tud_task();
 }
 
 
