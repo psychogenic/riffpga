@@ -82,7 +82,7 @@ In your own projects, you can either wire up a bare RP2 chip or drop in a [Raspb
 
 The basic function doesn't require all that much wiring.  Even with all the "options" you basically just need 9 pins.
 
-Here's the relevant section of one of my boards that uses this system with a bare RP2040 chip:
+Here are the two boards from which I grabbed the terminal screenshots, along with the relevant section of a schematic that uses this system with a bare RP2040 chip:
 
 ![riffpga hook-up](./images/riffpga_basichookup.jpg)
 
