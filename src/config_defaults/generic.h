@@ -27,6 +27,7 @@
 
 #define BOARD_SYSTEM_CLOCK_FREQ_HZ		125000000
 
+#define PIN_RP_LED			25
 
 #define PIN_FPGA_RESET		4
 #define PIN_FPGA_SPI_MISO	0
