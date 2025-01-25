@@ -37,7 +37,8 @@ set(TOP ${PICO_TINYUSB_PATH})
 
 
 
-set(PICO_BOARD pico CACHE STRING "Board type")
+set(PICO_BOARD_HEADER_DIRS ${CMAKE_CURRENT_SOURCE_DIR}/boards)
+set(PICO_BOARD riffpga CACHE STRING "Board type")
 
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include("${PICO_SDK_PATH}/external/pico_sdk_import.cmake")
