@@ -160,7 +160,7 @@ static void dump_gp_inputs(BoardConfigPtrConst bc, SUIInteractionFunctions * fun
 
 	CDCWRITESTRING(" GP Inputs: ");
 	if (! bc->system.num_inputs) {
-		CDCWRITESTRING("None");
+		CDCWRITESTRING("None\r\n");
 	} else {
 		for (uint8_t i=0; i<bc->system.num_inputs; i++) {
 			cdc_write_dec_u8(bc->system.input_io[i]);

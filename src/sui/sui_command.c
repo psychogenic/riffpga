@@ -153,21 +153,29 @@ void sui_command_show_help(SUIInteractionFunctions * funcs) {
 	char buf[2];
 	buf[1] = '\0';
 
+	size_t namelen = strlen(bc->board_name);
+	uint8_t namespaces_prefix = (59 - namelen)/2;
+
+
 	CDCWRITESTRING("\r\n\r\n");
 	CDCWRITESTRING(starsep);
-	        CDCWRITESTRING(" *                      RifFPGA v" );
-	        cdc_write_dec_u8(bc->version.major);
-	        CDCWRITECHAR(".");
-	        cdc_write_dec_u8(bc->version.minor);
-	        CDCWRITECHAR(".");
-	        cdc_write_dec_u8(bc->version.patchlevel);
-	        CDCWRITESTRING("                       *\r\n");
-	        CDCWRITESTRING(" *                   (C) 2025 Pat Deegan                     *\r\n");
-			CDCWRITEFLUSH();
+	CDCWRITESTRING(" *");
+	for (uint8_t i=0; i<namespaces_prefix; i++) {
+		CDCWRITECHAR(" ");
+		funcs->wait();
+	}
+	CDCWRITESTRING(bc->board_name);
+	for (uint8_t i=(namespaces_prefix + namelen); i<59; i++) {
+
+		CDCWRITECHAR(" ");
+		funcs->wait();
+	}
+	CDCWRITESTRING("*\r\n");
+
 	        CDCWRITESTRING(" *                === Available Commands ===                 *\r\n");
 	        CDCWRITESTRING(starspacer);
 			CDCWRITEFLUSH();
-	funcs->wait();
+			funcs->wait();
 	        CDCWRITESTRING(" *    command         key                                    *\r\n");
 	while (commands[i].command != NULL) {
 		buf[0] = commands[i].hotkey;
@@ -198,17 +206,37 @@ void sui_command_show_help(SUIInteractionFunctions * funcs) {
 		}
 
 		CDCWRITESTRING("*\r\n");
-		CDCWRITEFLUSH();
 		funcs->wait();
+		CDCWRITEFLUSH();
 		i++;
 
 	}
 
 	CDCWRITESTRING(starspacer);
-    CDCWRITESTRING(" *        Enter command (or key) to trigger function.        *\r\n");
+    CDCWRITESTRING(" *                      RifFPGA v" );
+    cdc_write_dec_u8(bc->version.major);
+    CDCWRITECHAR(".");
+    cdc_write_dec_u8(bc->version.minor);
+    CDCWRITECHAR(".");
+    cdc_write_dec_u8(bc->version.patchlevel);
+    CDCWRITESTRING("                       *\r\n");
+
+	funcs->wait();
 	CDCWRITEFLUSH();
+
+    CDCWRITESTRING(" *                   (C) 2025 Pat Deegan                     *\r\n");
 	CDCWRITESTRING(starspacer);
+	funcs->wait();
+	CDCWRITEFLUSH();
+	funcs->wait();
+
+    CDCWRITESTRING(" *        Enter command (or key) to trigger function.        *\r\n");
+	funcs->wait();
+	CDCWRITESTRING(starspacer);
+	funcs->wait();
 	CDCWRITESTRING(starsep);
+	funcs->wait();
+
 
 }
 
