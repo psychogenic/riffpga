@@ -1,5 +1,9 @@
  /*
  * sys_version.h, part of the riffpga project
+ *
+ * Incrementing this version will automatically overwrite the config
+ * blob on targets with the set of defaults.
+ *
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com
  *
@@ -23,6 +27,6 @@
 
 #define BOARD_VERSION_MAJOR		1
 #define BOARD_VERSION_MINOR		0
-#define BOARD_VERSION_PATCH		5
+#define BOARD_VERSION_PATCH		6
 
 #endif
