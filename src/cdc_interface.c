@@ -19,6 +19,7 @@
 #include "cdc_interface.h"
 
 #include "tusb.h"
+#include "bsp/board_api.h"
 volatile bool wbusy = 0;
 
 static char digits_buffer[12];
@@ -40,6 +41,14 @@ void cdc_write(const char * s, uint32_t len) {
 	wbusy = 1;
 	tud_cdc_write_flush(); // empty any pending
     tud_cdc_write(s, len);
+
+    if (len >= CDC_THROTTLE_WRITES_OVER) {
+    	uint32_t tnowTarg = board_millis() + (len/CDC_THROTTLE_RATIO_MS);
+    	while (tnowTarg > board_millis()) {
+
+    	}
+
+    }
     wbusy = 0;
 }
 
