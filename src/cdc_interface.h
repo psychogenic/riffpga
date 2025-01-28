@@ -23,12 +23,13 @@
 #include "board_includes.h"
 
 #define CDCWRITESTRING(s)	cdc_write(s, strlen(s))
-#define CDCWRITECHAR(c)		cdc_write(c, 1);
+#define CDCWRITECHAR(c)		cdc_write_char(c);
 #define CDCWRITEFLUSH()     tud_cdc_n_write_flush(0)
 
 
 #define CDC_THROTTLE_WRITES_OVER	10
 #define CDC_THROTTLE_RATIO_MS		6
+void cdc_write_char(char c);
 
 void cdc_write(const char * s, uint32_t len);
 int32_t cdc_read_char(void);

@@ -189,13 +189,15 @@ TINYUF2_CONST char indexFile[] =
 TINYUF2_CONST char howtoFile[] =
 	"Writing a UF2 file to this 'drive' will "
 	"replace the contents of the bitstream for "
-	"the FPGA.\r\n"
+	"the FPGA.\r\n\r\n"
 	"The FPGA will reset after writes, and I/O may be "
-	"accessed via the headers/PMODs.\r\n"
+	"accessed via the headers/PMODs.\r\n\r\n"
 	"There is also a serial device present to "
 	"allow for configuration and interaction with "
 	"the project, to set the clocking, select the slot or, "
-	"for advanced users, via the uart bridge or microcotb (https://microcotb.org)\r\n";
+	"for advanced users, via the uart bridge or microcotb (https://microcotb.org).\r\n\r\n"
+	"Source code for this system is available at https://github.com/psychogenic/riffpga\r\n"
+		;
 
 #ifdef TINYUF2_FAVICON_HEADER
 #include TINYUF2_FAVICON_HEADER

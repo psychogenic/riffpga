@@ -164,7 +164,7 @@ static void dump_gp_inputs(BoardConfigPtrConst bc, SUIInteractionFunctions * fun
 	} else {
 		for (uint8_t i=0; i<bc->system.num_inputs; i++) {
 			cdc_write_dec_u8(bc->system.input_io[i]);
-			CDCWRITECHAR(" ");
+			CDCWRITECHAR(' ');
 		}
 		cmd_read_io_inputs(funcs);
 		CDCWRITEFLUSH();
@@ -200,9 +200,9 @@ void cmd_dump_state(SUIInteractionFunctions * funcs) {
 	CDCWRITESTRING(bc->board_name);
 	CDCWRITESTRING("\r\n Version: ");
 	cdc_write_dec_u8(bc->version.major);
-	CDCWRITECHAR(".");
+	CDCWRITECHAR('.');
 	cdc_write_dec_u8(bc->version.minor);
-	CDCWRITECHAR(".");
+	CDCWRITECHAR('.');
 	cdc_write_dec_u8_ln(bc->version.patchlevel);
 	CDCWRITESTRING("\r\n");
 	CDCWRITEFLUSH();
@@ -249,7 +249,7 @@ void cmd_dump_raw_config(SUIInteractionFunctions * funcs) {
 			CDCWRITEFLUSH();
 		}
 		cdc_write_u8_leadingzeros(v[i]);
-		CDCWRITECHAR(" ");
+		CDCWRITECHAR(' ');
 	}
 	CDCWRITESTRING("\r\n\r\n");
 	CDCWRITEFLUSH();

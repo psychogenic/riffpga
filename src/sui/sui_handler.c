@@ -42,23 +42,37 @@ void sui_handle_request(writestring_func wr, readchar_func rd, charavail_func av
 
 	uint8_t numchars = sui_read_string(rd, avail, waittask, input_buffer, SUI_COMMAND_MAXLEN);
 	if (! numchars ) {
+		CDCWRITESTRING("\r\n> ");
 		return;
 	}
 
 
 	CommandInfo * cmd = sui_command_by_name(input_buffer);
 	if (cmd != NULL) {
-		// CDCWRITESTRING("Got command:");
-		// cdc_write(input_buffer, numchars);
-		cmd->cb(&funcs);
+		if (cmd->needs_confirmation == false) {
+			// just run it
+			cmd->cb(&funcs);
+		} else {
+			CDCWRITESTRING("\r\n Run '");
+			CDCWRITESTRING(cmd->command);
+			CDCWRITESTRING("' [y/N]? ");
+
+			CDCWRITEFLUSH();
+			uint8_t numconfchars =  sui_read_string(rd, avail, waittask, input_buffer, SUI_COMMAND_MAXLEN);
+			if (input_buffer[0] == 'y' || input_buffer[0] == 'Y') {
+				CDCWRITESTRING("\r\n Acknowledged.  Running.\r\n");
+
+				cmd->cb(&funcs);
+			} else {
+				CDCWRITESTRING("\r\n Aborted.  Skipping.\r\n");
+			}
+		}
+
+
 		CDCWRITESTRING("\r\n> ");
 		CDCWRITEFLUSH();
 	} else {
-		/*
-		CDCWRITESTRING("Unknown cmd: ");
-		cdc_write(input_buffer, numchars);
-		sui_command_show_help();
-		*/
+		CDCWRITESTRING("\r\n> ");
 	}
 }
 

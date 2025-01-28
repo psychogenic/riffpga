@@ -40,11 +40,7 @@ void cmd_fpga_reset(SUIInteractionFunctions * funcs) {
 }
 void cmd_fpga_prog(SUIInteractionFunctions * funcs) {
 
-	/*CDCWRITESTRING("\r\nDEBUG SPI PINS\r\n");
-	fpga_debug_spi_pins();
-
-	return;
-	*/
+	BoardConfigPtrConst bc = boardconfig_get();
 
 	CDCWRITESTRING("\r\nProgramming FPGA...");
 	if (bs_program_fpga(funcs->wait) == false) {
@@ -52,5 +48,13 @@ void cmd_fpga_prog(SUIInteractionFunctions * funcs) {
 	} else {
 		CDCWRITESTRING("done!\r\n");
 	}
+
+	CDCWRITESTRING("cdone is: ");
+	if (gpio_get(bc->fpga_cram.pin_done)) {
+		CDCWRITESTRING("HIGH\r\n");
+	} else {
+		CDCWRITESTRING("LOW\r\n");
+	}
+
 
 }

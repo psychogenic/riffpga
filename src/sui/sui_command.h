@@ -30,6 +30,7 @@ typedef struct commandinfostruct {
 	const char * command;
 	const char * help;
 	const char hotkey;
+	bool needs_confirmation;
 	commandcallback cb;
 } CommandInfo;
 

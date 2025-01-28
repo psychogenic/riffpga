@@ -32,6 +32,16 @@ int32_t cdc_read_char(void) {
 uint32_t cdc_available(void) {
 	return tud_cdc_available();
 }
+
+void cdc_write_char(char c) {
+	if (! tud_cdc_ready())
+	{
+		return;
+	}
+
+	tud_cdc_write_char(c);
+}
+
 void cdc_write(const char * s, uint32_t len) {
 	if (! tud_cdc_ready())
 	{

@@ -43,6 +43,7 @@ uint8_t sui_read_string(readchar_func rd, charavail_func avail, bgwaittask waitt
 			char c = rd();
 			if (c == 0x08 /* backspace */ ){
 				if (charcount) {
+					cdc_write_char(c);
 					charcount -= 1;
 				}
 			} else if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c < ' ' || c > 'z') {

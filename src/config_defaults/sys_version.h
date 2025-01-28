@@ -27,6 +27,6 @@
 
 #define BOARD_VERSION_MAJOR		1
 #define BOARD_VERSION_MINOR		0
-#define BOARD_VERSION_PATCH		6
+#define BOARD_VERSION_PATCH		7
 
 #endif
