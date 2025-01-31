@@ -1,5 +1,8 @@
 /*
  * board.h, part of the riffpga project
+ *
+ * Board stuff, mostly related to flash memory.
+ *
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com
  *

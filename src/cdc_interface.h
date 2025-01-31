@@ -1,5 +1,8 @@
 /*
  * cdc_interface.h, part of the riffpga project
+ *
+ * Functions related to the serial terminal device.
+ *
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com
  *

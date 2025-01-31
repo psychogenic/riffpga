@@ -1,6 +1,13 @@
 /*
  * uart_bridge.h, part of the riffpga project
  *
+ * The "uart bridge" allows us to leverage the serial connection to
+ * bypass the RP2040 and talk directly to the FPGA, assuming the design
+ * has UART support built in, on the right pins and at the right baudrate.
+ *
+ * Baudrate here is configurable through the serial UI.
+ *
+ *
  *  Created on: Jan 6, 2025
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com

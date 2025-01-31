@@ -1,6 +1,14 @@
 /*
  * board_config.h, part of the riffpga project
  *
+ * General configuration for target PCB.  This is in essence a fat
+ * struct that is stored as a blob on the flash and used to tweak
+ * the behaviour and experience.
+ *
+ * The default values for this fat blob come from one of the
+ * config_defaults/*.h files, which is how you support a variety
+ * of hardware/layouts.
+ *
  *  Created on: Dec 20, 2024
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com

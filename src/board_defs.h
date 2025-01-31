@@ -1,7 +1,12 @@
 /*
  * board_defs.h, part of the riffpga project
+ *
+ * Defines used internally.
+ *
+ *
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com
+ *
  *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
@@ -23,13 +28,7 @@
 
 #include "board_includes.h"
 #include "board_config_defaults.h"
-
-#define UF2_VERSION "2.0.0"
-#define UF2_PRODUCT_NAME 	"riffpga"
-#define UF2_BOARD_ID 		BOARD_NAME
-#define UF2_INDEX_URL 		"https://psychogenic.com/riffpga"
-#define UF2_VOLUME_LABEL 	DRIVE_VOLUME_LABEL
-//define TINYUF2_FAVICON_HEADER
+#include "config_defaults/sys_version.h"
 
 #define TINYUF2_CONST
 
@@ -47,7 +46,17 @@
 
 #define FLASH_RESET_DELAY_MS		2
 
-#define DEBUG_START_PROGRAM_DELAY_MS	2000
+#define DEBUG_START_PROGRAM_DELAY_MS	500
+
+
+#define UF2_VERSION BOARD_VERSION_MAJOR "." BOARD_VERSION_MINOR "." BOARD_VERSION_PATCH
+#define UF2_PRODUCT_NAME 	"riffpga"
+#define UF2_BOARD_ID 		BOARD_NAME
+#define UF2_INDEX_URL 		"https://psychogenic.com/riffpga"
+#define UF2_VOLUME_LABEL 	DRIVE_VOLUME_LABEL
+//define TINYUF2_FAVICON_HEADER
+
+
 
 
 

@@ -1,6 +1,8 @@
 /*
  * clock_pwm.h, part of the riffpga project
  *
+ * "Auto-clocking" and manual clocking of FPGA
+ *
  *  Created on: Jan 6, 2025
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com

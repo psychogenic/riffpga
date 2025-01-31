@@ -1,6 +1,9 @@
 /*
  * bitstream.h, part of the riffpga project
  *
+ * Functionality related to the binary bitstream stored in
+ * a slot in flash, as well as the related meta-data.
+ *
  *  Created on: Dec 18, 2024
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com
