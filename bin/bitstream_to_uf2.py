@@ -7,7 +7,7 @@ Created on Dec 17, 2024
 @copyright: Copyright (C) 2024 Pat Deegan, https://psychogenic.com
 '''
 
-
+import sys
 import os.path
 import argparse
 import struct
@@ -31,7 +31,6 @@ class UF2Settings:
         self.magicEnd = magicend
 
 TargetOptions = {
-    
     'generic': UF2Settings(
                     name='Generic',
                     familyDesc='Generic/Sample build',
@@ -54,13 +53,21 @@ TargetOptions = {
             magicend=0x1C73C401)
 }
 
+# these values must be in agreement with the 
+# riffpga settings running on the target board
+base_bitstream_storage_address_kb = 544
+reserved_kb_for_bitstream_slot = 512
 
-base_bitstream_storage_page = 544
-page_blocks = 4 # 4 k per page
-reserved_pages_for_bitstream_slot = int((512)/page_blocks)
-#reserved_pages_for_bitstream_slot = int(512/page_blocks)
-max_pages_for_bitstream = int(128/page_blocks)
-base_page = int(544/page_blocks)
+metadata_start1_offset  = 0x42
+metadata_payload_header = "RFMETA"
+metadata_proj_name_maxlen = 22
+
+
+# derived values
+page_blocks = 4 # 4 k per page, this has to align for flash reasons
+reserved_pages_for_bitstream_slot = int(reserved_kb_for_bitstream_slot/page_blocks)
+base_page = int(base_bitstream_storage_address_kb/page_blocks)
+
 
 def get_args():
     parser = argparse.ArgumentParser(
@@ -79,11 +86,16 @@ def get_args():
     parser.add_argument('--name', required=False, type=str,
                         default='',
                         help='Pretty name for bitstream')
+    parser.add_argument('--appendslot', required=False,
+                        action='store_true',
+                        help='Append to slot to output file name')
     parser.add_argument('infile',
                         help='input bitstream')
     parser.add_argument('outfile', help='output UF2 file')
     
     return parser.parse_args()
+    
+
 def get_payload_contents(infilepath:str):
     
     # return whatever you want in here
@@ -112,22 +124,21 @@ def get_metadata_block(settings:UF2Settings, flash_address:int, filename:str, bi
         else:
             bitstreamName = os.path.basename(filename)
 
-    bsnamelenmax = 22
+    bsnamelenmax = metadata_proj_name_maxlen
     bsnamelen = len(bitstreamName)
-    # bsformat = 'c'*bsnamelenmax
     if bsnamelen > bsnamelenmax:
         bitstreamName = bitstreamName[:bsnamelenmax]
         bsnamelen = bsnamelenmax
 
     target = bytearray(4+1)
 
-    metaheader = 'BSMETA01'
+    metaheader = f'{metadata_payload_header}01'
+    
     struct.pack_into(f'<IB', target, 0, bitstreamSize, len(bitstreamName))
     payload = bytes(metaheader, encoding='ascii') + target + bytes(bitstreamName, encoding='ascii')
-    print(bitstreamName)
-    print(payload)
     hdr = Header(Flags.FamilyIDPresent | Flags.NotMainFlash, flash_address, len(payload), 0, 1, settings.boardFamily)
-    return DataBlock(payload, hdr, magic_start1=settings.magicStart1+0x42)
+    return DataBlock(payload, hdr, magic_start1=(settings.magicStart1+metadata_start1_offset),
+                        magic_end=settings.magicEnd)
 
 
 def main():
@@ -136,32 +147,53 @@ def main():
     
     if args.slot < 1 or args.slot > 4:
         print("Select a slot between 1-4")
-        return 
+        sys.exit(-1)
+        
+    if len(args.name) > metadata_proj_name_maxlen:
+        print(f'Name can only be up to {metadata_proj_name_maxlen} characters')
+        sys.exit(-2) 
+        
     
     slotidx = args.slot - 1
+    payload_bytes = get_payload_contents(args.infile)
     
-    # stick it somewhere within its slot
-    page = random.randint(0, reserved_pages_for_bitstream_slot-(max_pages_for_bitstream + (160/4)))
-    page += reserved_pages_for_bitstream_slot * slotidx
-    page += base_page
+    # stick it somewhere within its slot...
+    
+    
     
     uf2sets = TargetOptions[args.target]
     
     uf2 = get_new_uf2(uf2sets)
-    payload_bytes = get_payload_contents(args.infile)
     
-    start_offset = page*page_blocks*1024
-
-
+    
+    # figure out a start address for the bitstream.
+    # we have a little room to play, important thing is to page-align.
+    
+    # number of pages this infile requires, plus a teeny bit of slack
+    pages_required = int(len(payload_bytes)/(4*1024)) + 4
+    
+    # base page for this slot
+    lowest_page_for_slot = base_page + (reserved_pages_for_bitstream_slot * slotidx)
+    # actual start page we'll use, randomized, with a teeny bit of slack on the front as well
+    start_page = lowest_page_for_slot + random.randint(4, reserved_pages_for_bitstream_slot-pages_required)
+    # actual start address, based on page
+    start_offset = start_page*page_blocks*1024
+    
+    # append a data block for meta information
     uf2.append_datablock(get_metadata_block(uf2sets, start_offset, args.infile, len(payload_bytes), args.name))
     uf2.append_payload(payload_bytes, 
                        start_offset=start_offset, 
                        block_payload_size=256)
                        
+    if args.appendslot:
+        fnameext = os.path.splitext(args.outfile)
+        outfilename = f'{fnameext[0]}_{args.slot}{fnameext[1]}'
+    else:
+        outfilename = args.outfile
     
-    uf2.to_file(args.outfile)
-    print(f"Generated UF2 for slot {args.slot}, starting at address {hex(start_offset)}")
-    print(f"It now available at {args.outfile}")
+    uf2.to_file(outfilename)
+    print(f"\n\nGenerated UF2 for slot {args.slot}, starting at address {hex(start_offset)} with size {len(payload_bytes)}")
+    print(f"It now available at {outfilename}\n")
     
 
 if __name__ == "__main__":

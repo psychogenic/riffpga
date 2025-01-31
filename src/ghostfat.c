@@ -184,9 +184,9 @@ STATIC_ASSERT(FAT_ENTRIES_PER_SECTOR                       ==       256); // FAT
 
 
 char infoUf2File[128*3] =
-    "Version: " UF2_VERSION "\r\n"
-    "Model: " UF2_PRODUCT_NAME "\r\n"
     "Board: " UF2_BOARD_ID "\r\n"
+    "Firmware: " UF2_PRODUCT_NAME "\r\n"
+    "Version: "  UF2_VERSION "\r\n"
     "Compiled: " COMPILE_DATE "\r\n"
     "Flash Size: 0x";
 
@@ -294,9 +294,22 @@ static FAT_BootBlock TINYUF2_CONST BootBlock = {
 //--------------------------------------------------------------------+
 
 static inline bool is_uf2_binmeta_block(UF2_Block const *bl, BoardConfigPtrConst bc) {
-	return ( (bl->magicStart0 == UF2_MAGIC_START0) &&
-	         (bl->magicStart1 == bc->bin_download.magic_start + 0x42) &&
-	         (bl->magicEnd == bc->bin_download.magic_end));
+	static const char payloadHeader[6] = BIN_UF2_METABLOCK_PAYLOADHEADER;
+	if  (! ( (bl->magicStart0 == UF2_MAGIC_START0) &&
+	         (bl->magicStart1 == bc->bin_download.magic_start + BIN_UF2_METABLOCK_START1DELTA) &&
+	         (bl->magicEnd == bc->bin_download.magic_end)
+		 ) ) {
+		return false;
+	}
+	// UF2 header is good
+	// check payload
+	for (uint8_t i=0; i<6; i++) {
+		if (bl->data[i] != payloadHeader[i]) {
+			return false;
+		}
+	}
+
+	return true;
 
 }
 

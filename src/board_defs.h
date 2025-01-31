@@ -39,9 +39,14 @@
 #define FLASH_SPI_XFER_BLOCKSIZE 	256 /* keep it short so we stay responsive */
 
 
-
-// All entries are little endian.
 #define UF2_MAGIC_START0    0x0A324655UL // "UF2\n"
+// bitstreams may have a meta-information block
+// it's differentiated using a start1 that's offset
+// from the BIN_UF2_MAGIC_START1 by this amount
+// You can see this in action in the
+// bin/bitstream_to_uf2.py packager
+#define BIN_UF2_METABLOCK_START1DELTA		0x42
+#define BIN_UF2_METABLOCK_PAYLOADHEADER		"RFMETA"
 
 
 #define FLASH_RESET_DELAY_MS		2
@@ -49,7 +54,7 @@
 #define DEBUG_START_PROGRAM_DELAY_MS	500
 
 
-#define UF2_VERSION BOARD_VERSION_MAJOR "." BOARD_VERSION_MINOR "." BOARD_VERSION_PATCH
+#define UF2_VERSION 		BOARD_VERSION_STR
 #define UF2_PRODUCT_NAME 	"riffpga"
 #define UF2_BOARD_ID 		BOARD_NAME
 #define UF2_INDEX_URL 		"https://psychogenic.com/riffpga"
