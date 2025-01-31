@@ -26,6 +26,9 @@
 #define DRIVE_VOLUME_LABEL  "PSYDMI"
 
 
+// RP2 clock frequency
+// TinyUSB wants it to be 120M but it's
+// worked fine from 100 to 126 so far... still
 #define BOARD_SYSTEM_CLOCK_FREQ_HZ		120000000ULL
 
 

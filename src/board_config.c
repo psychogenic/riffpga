@@ -86,6 +86,7 @@ void boardconfig_factoryreset(bool erase_bitstreams) {
 
 	//DEBUG_LN("bc fact reset");
 	board_config_reinit();
+	boardconfig_write();
 	if (erase_bitstreams) {
 		bs_erase_all();
 	}
@@ -328,6 +329,7 @@ void boardconfig_write(void) {
     DEBUG_LN("Writing config");
     board_flash_write(BOARD_CONFIG_FLASHADDRESS, &config_block, sizeof(config_block));
     board_flash_pages_erased_clear();
+    sleep_ms(10);
 }
 
 

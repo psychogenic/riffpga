@@ -165,7 +165,7 @@ uint32_t bs_check_for_marker(void) {
 
 void bs_write_marker(uint32_t num_blocks, uint32_t bitstream_size,
 		uint32_t address_start, Bitstream_MetaInfo *info) {
-	bs_write_marker_to_slot(boardconfig_bs_marker_address(), num_blocks,
+	bs_write_marker_to_slot(boardconfig_selected_bitstream_slot(), num_blocks,
 			bitstream_size, address_start, info);
 
 }

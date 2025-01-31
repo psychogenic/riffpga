@@ -63,6 +63,10 @@ metadata_payload_header = "RFMETA"
 metadata_payload_version = "01"
 metadata_proj_name_maxlen = 23
 
+factoryreset_start1_offset = 0xdead
+factoryreset_payload_header = "RFRSET"
+
+
 
 # derived values
 page_blocks = 4 # 4 k per page, this has to align for flash reasons
@@ -95,6 +99,10 @@ def get_args():
     parser.add_argument('--appendslot', required=False,
                         action='store_true',
                         help='Append to slot to output file name')
+                        
+    parser.add_argument('--factoryreset', required=False,
+                        action='store_true',
+                        help='Ignore everything, create a factory reset package')
                         
     parser.add_argument('infile',
                         help='input bitstream')
@@ -160,9 +168,34 @@ def get_metadata_block(settings:UF2Settings, flash_address:int, bitstreamSize:in
                         magic_end=settings.magicEnd)
 
 
+def gen_factory_reset(args):
+    
+    
+    uf2sets = TargetOptions[args.target]
+    uf2sets.magicStart1 += factoryreset_start1_offset
+    
+    uf2 = get_new_uf2(uf2sets)
+    payload_bytes =  bytes(f'{factoryreset_payload_header}01', encoding='ascii')
+    
+    uf2.append_payload(payload_bytes, 
+                       start_offset=base_bitstream_storage_address_kb*1024, 
+                       block_payload_size=256)
+                       
+    
+    uf2.to_file(args.outfile)
+    print(f"\n\nGenerated FACTORY RESET UF2.")
+    print(f"It now available at {args.outfile}\n")
+                       
+    
+    
+
 def main():
     
     args = get_args()
+    
+    if args.factoryreset:
+        gen_factory_reset(args)
+        return
     
     if args.slot < 1 or args.slot > 4:
         print("Select a slot between 1-4")

@@ -318,4 +318,5 @@ void board_flash_flush(void) {
 
 	BRD_DEBUG_LN("FLUSH CALLED!!!! WE DONE");
 	board_flash_pages_erased_clear();
+	sleep_ms(200);
 }

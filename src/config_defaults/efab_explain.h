@@ -25,7 +25,9 @@
 #define BOARD_NAME          "Efabless Explain"
 #define DRIVE_VOLUME_LABEL  "FPGAUPDATE"
 
-#define BOARD_SYSTEM_CLOCK_FREQ_HZ		100500000ULL
+// should default to 120MHz for safety with
+// tinyUSB bitbanging
+#define BOARD_SYSTEM_CLOCK_FREQ_HZ		120000000ULL
 
 
 #define PIN_RP_LED			25

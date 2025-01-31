@@ -294,6 +294,25 @@ static FAT_BootBlock TINYUF2_CONST BootBlock = {
 //
 //--------------------------------------------------------------------+
 
+static inline bool is_uf2_binfactreset_block(UF2_Block const *bl, BoardConfigPtrConst bc) {
+	static const char payloadHeader[6] = BIN_UF2_FACTORYRESET_PAYLOADHEADER;
+	if  (! ( (bl->magicStart0 == UF2_MAGIC_START0) &&
+	         (bl->magicStart1 == bc->bin_download.magic_start + BIN_UF2_FACTORYRESET_START1DELTA) &&
+	         (bl->magicEnd == bc->bin_download.magic_end)
+		 ) ) {
+		return false;
+	}
+	// UF2 header is good
+	// check payload
+	for (uint8_t i=0; i<6; i++) {
+		if (bl->data[i] != payloadHeader[i]) {
+			return false;
+		}
+	}
+
+	return true;
+}
+
 static inline bool is_uf2_binmeta_block(UF2_Block const *bl, BoardConfigPtrConst bc) {
 	static const char payloadHeader[6] = BIN_UF2_METABLOCK_PAYLOADHEADER;
 	if  (! ( (bl->magicStart0 == UF2_MAGIC_START0) &&
@@ -738,7 +757,16 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 		#endif
 
 		  state->numWritten++;
+	  } else if (is_uf2_binfactreset_block(bl, bc)) {
+		  CDCWRITESTRING("This is a FACTORY RESET request!!!");
+		  boardconfig_factoryreset(true);
+		  CDCWRITEFLUSH();
+
+    	  sleep_ms(150);
+    	  uf2_write_complete();
 	  }
+
+
 
 
 

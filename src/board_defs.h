@@ -47,8 +47,10 @@
 // from the BIN_UF2_MAGIC_START1 by this amount
 // You can see this in action in the
 // bin/bitstream_to_uf2.py packager
-#define BIN_UF2_METABLOCK_START1DELTA		0x42
-#define BIN_UF2_METABLOCK_PAYLOADHEADER		"RFMETA"
+#define BIN_UF2_METABLOCK_START1DELTA			0x42
+#define BIN_UF2_METABLOCK_PAYLOADHEADER			"RFMETA"
+#define BIN_UF2_FACTORYRESET_START1DELTA		0xdead
+#define BIN_UF2_FACTORYRESET_PAYLOADHEADER		"RFRSET"
 
 
 #define FLASH_RESET_DELAY_MS		2
