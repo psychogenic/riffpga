@@ -199,7 +199,7 @@ static void dump_bitstream_info(BoardConfigPtrConst bc,
 		SUIInteractionFunctions *funcs) {
 
 	Bitstream_Slot_Content slot_contents[POSITION_SLOTS_ALLOWED];
-	const Bitstream_Marker_State *bsmark = bs_marker_get();
+	const Bitstream_Settings *bssets = bs_settings_get();
 
 	uint8_t num_found = bs_slot_contents(slot_contents);
 	CDCWRITESTRING(" Slot Contents\r\n");
@@ -208,8 +208,8 @@ static void dump_bitstream_info(BoardConfigPtrConst bc,
 		cdc_write_dec_u8((i + 1));
 		CDCWRITECHAR(':');
 		if (slot_contents[i].found == true) {
-			if (slot_contents[i].namelen) {
-				cdc_write(slot_contents[i].name, slot_contents[i].namelen);
+			if (slot_contents[i].info.namelen) {
+				cdc_write(slot_contents[i].info.name, slot_contents[i].info.namelen);
 			} else {
 				CDCWRITESTRING("unnamed");
 			}
@@ -222,11 +222,11 @@ static void dump_bitstream_info(BoardConfigPtrConst bc,
 
 	CDCWRITESTRING("\r\n Using bitstream slot ");
 	cdc_write_dec_u8(1 + boardconfig_selected_bitstream_slot());
-	if (bsmark->size) {
+	if (bssets->size) {
 		CDCWRITESTRING(", have config of size ");
-		cdc_write_dec_u32(bsmark->size);
+		cdc_write_dec_u32(bssets->size);
 		CDCWRITESTRING(" @ 0x");
-		cdc_write_u32_ln(bsmark->start_address);
+		cdc_write_u32_ln(bssets->start_address);
 	} else {
 
 		CDCWRITESTRING(", but no valid stream present.\r\n");
@@ -254,12 +254,12 @@ void cmd_dump_state(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\n");
 	CDCWRITEFLUSH();
 	const Bitstream_Marker_State *bsmark = bs_marker_get();
-	if (bsmark->have_checked && bsmark->size) {
+	if (bsmark->have_checked && bsmark->settings.size) {
 
 		CDCWRITESTRING(" Project bitstream: ");
-		cdc_write_dec_u32(bsmark->size);
+		cdc_write_dec_u32(bsmark->settings.size);
 		CDCWRITESTRING(" bytes @ 0x");
-		cdc_write_u32_ln(bsmark->start_address);
+		cdc_write_u32_ln(bsmark->settings.start_address);
 	}
 
 	funcs->wait();

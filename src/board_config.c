@@ -28,6 +28,7 @@
 #include "board.h"
 #include "uf2.h"
 #include "clock_pwm.h"
+#include "bitstream.h"
 
 static  BoardConfig _board_conf_singleton_obj = {0};
 
@@ -77,14 +78,17 @@ void boardconfig_init(void) {
 		}
 	} else {
 		DEBUG_LN("No config block--initializing");
-		boardconfig_factoryreset();
+		boardconfig_factoryreset(false);
 	}
 }
 
-void boardconfig_factoryreset(void) {
+void boardconfig_factoryreset(bool erase_bitstreams) {
 
 	//DEBUG_LN("bc fact reset");
 	board_config_reinit();
+	if (erase_bitstreams) {
+		bs_erase_all();
+	}
 	// boardconfig_write();
 
 }

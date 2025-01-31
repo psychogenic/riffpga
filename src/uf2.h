@@ -69,7 +69,7 @@ SOFTWARE.
 
 #define MAX_BLOCKS (CFG_UF2_FLASH_SIZE / 256 + 100)
 
-#define BITSTREAM_NAME_MAXLEN		22
+#define BITSTREAM_NAME_MAXLEN		23
 typedef struct {
     uint32_t numBlocks;
     uint32_t numWritten;
@@ -77,8 +77,6 @@ typedef struct {
     bool aborted;             // aborting update and reset
 
     uint8_t writtenMask[MAX_BLOCKS / 8 + 1];
-    uint8_t namelen;
-    char bsname[BITSTREAM_NAME_MAXLEN+1];
 
 } WriteState;
 

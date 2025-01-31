@@ -33,10 +33,7 @@
 
 
 
-#include "board_includes.h"
-
-#define RIF_PACKED_STRUCT __attribute__((packed))
-// #define RIF_PACKED_STRUCT
+#include "board_defs.h"
 
 
 #define BOARD_NAME_CHARS	23
@@ -169,7 +166,7 @@ typedef struct RIF_PACKED_STRUCT   board_config_struct {
 typedef const BoardConfig const * BoardConfigPtrConst;
 
 void boardconfig_init(void);
-void boardconfig_factoryreset(void);
+void boardconfig_factoryreset(bool erase_bitstreams);
 
 BoardConfigPtrConst boardconfig_get(void);
 

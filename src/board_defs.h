@@ -30,6 +30,8 @@
 #include "board_config_defaults.h"
 #include "config_defaults/sys_version.h"
 
+#define RIF_PACKED_STRUCT __attribute__((packed))
+
 #define TINYUF2_CONST
 
 #define BOARD_FLASH_SIZE  		(512 * 1024)

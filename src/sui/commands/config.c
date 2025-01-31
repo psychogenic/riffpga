@@ -28,7 +28,7 @@
 
 void cmd_factory_reset_config(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\nConfiguration Factory Reset!\r\n");
-	boardconfig_factoryreset();
+	boardconfig_factoryreset(false);
 	cmd_dump_state(funcs);
 }
 void cmd_save_config(SUIInteractionFunctions *funcs) {
@@ -49,8 +49,8 @@ void cmd_select_active_slot(SUIInteractionFunctions *funcs) {
 		cdc_write_dec_u8((i + 1));
 		CDCWRITESTRING(": ");
 		if (slot_contents[i].found == true) {
-			if (slot_contents[i].namelen) {
-				cdc_write(slot_contents[i].name, slot_contents[i].namelen);
+			if (slot_contents[i].info.namelen) {
+				cdc_write(slot_contents[i].info.name, slot_contents[i].info.namelen);
 				CDCWRITESTRING("\r\n");
 				slot_programmed[i] = 1;
 			} else {
@@ -70,16 +70,16 @@ void cmd_select_active_slot(SUIInteractionFunctions *funcs) {
 
 	const char *prompt = "\r\nEnter slot to use [1-3]: ";
 	//BoardConfigPtrConst bc = boardconfig_get();
-	const Bitstream_Marker_State *bsmarkorig = bs_marker_get();
+	const Bitstream_Settings * bssetsorig = bs_settings_get();
 
 	CDCWRITESTRING("\r\nCurrent active slot is ");
 	cdc_write_dec_u8(boardconfig_selected_bitstream_slot() + 1);
 
-	if (bsmarkorig->size) {
+	if (bssetsorig->size) {
 		CDCWRITESTRING(", have config of size ");
-		cdc_write_dec_u32(bsmarkorig->size);
+		cdc_write_dec_u32(bssetsorig->size);
 		CDCWRITESTRING(" @ 0x");
-		cdc_write_u32_ln(bsmarkorig->start_address);
+		cdc_write_u32_ln(bssetsorig->start_address);
 	} else {
 
 		CDCWRITESTRING(", but no valid stream present.\r\n");
@@ -111,12 +111,12 @@ void cmd_select_active_slot(SUIInteractionFunctions *funcs) {
 	uint32_t bs_size = bs_check_for_marker();
 	if (bs_size) {
 
-		const Bitstream_Marker_State *bsmark = bs_marker_get();
+		const Bitstream_Settings *bsset = bs_settings_get();
 
 		CDCWRITESTRING("Found bitstream of size ");
 		cdc_write_dec_u32(bs_size);
 		CDCWRITESTRING(" in slot, located at 0x");
-		cdc_write_u32_ln(bsmark->start_address);
+		cdc_write_u32_ln(bsset->start_address);
 		cmd_fpga_prog(funcs);
 	} else {
 		CDCWRITESTRING("No bitstream present in slot.\r\n");

@@ -71,7 +71,9 @@ void setup(void) {
 
 	boardconfig_init();
 	if (boardconfig_version_mismatch() == true) {
-		boardconfig_factoryreset();
+		// we reset -- no guarantee that bitstreams
+		// slots are safe, so erase those too
+		boardconfig_factoryreset(true);
 	}
 
 	BoardConfigPtrConst bconf = boardconfig_get();
@@ -84,6 +86,7 @@ void setup(void) {
 	}
 	fpga_init();
 	fpga_reset(true);
+
 	io_inputs_init();
 	io_switches_init();
 

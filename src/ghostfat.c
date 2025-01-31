@@ -138,7 +138,8 @@ STATIC_ASSERT(FAT_ENTRIES_PER_SECTOR                       ==       256); // FAT
 
 
 
-// define UF2_WRITE_DEBUG_NOT_UF2_DUMP
+//define UF2_WRITE_DEBUG_NOT_UF2_DUMP
+// define UF2_WRITE_DEBUG_UF2_METAINFO_DUMP
 
 #define GF_DEBUG_ENABLE 0
 #if GF_DEBUG_ENABLE
@@ -650,13 +651,13 @@ static void dump_uf2_block(UF2_Block * bl) {
 #define DUMP_UF2BLOCK(b)
 #endif
 
-static void debug_dump_datablock(uint8_t *data) {
+static void debug_dump_datablock(uint8_t *data, uint16_t len) {
 
 	  char ascii_contents[20] = {0};
 	  ascii_contents[16] = '\r';
 	  ascii_contents[17] = '\n';
 	  bool flushed = true;
-	  for (uint16_t i=0; i<BPB_SECTOR_SIZE; i++) {
+	  for (uint16_t i=0; i<len; i++) {
 
 		  if (i % 16 == 0) {
 
@@ -715,11 +716,26 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
   if ( !is_uf2_bin_block(bl, bc) ) {
 
 	  if (is_uf2_binmeta_block(bl, bc)) {
-#ifdef UF2_WRITE_DEBUG_NOT_UF2_DUMP
+#ifdef UF2_WRITE_DEBUG_UF2_METAINFO_DUMP
+		  /*
 		  DEBUG_LN("Got our meta-data");
-		  debug_dump_datablock(data);
+		  debug_dump_datablock(data, BPB_SECTOR_SIZE);
+		  CDCWRITEFLUSH();
+		  */
 #endif
-		  memcpy(&bs_write_metainfo, bl->data, sizeof(bs_write_metainfo));
+		  Bitstream_MetaInfo_Payload payloadmeta;
+		  // doing a two-step, just for clarity and flexibility
+		  // get the payload
+		  memcpy(&payloadmeta, bl->data, sizeof(payloadmeta));
+		  // save the meta info within
+		  memcpy(&bs_write_metainfo, &payloadmeta.info, sizeof(bs_write_metainfo));
+
+
+		#ifdef UF2_WRITE_DEBUG_UF2_METAINFO_DUMP
+		  	  	  DEBUG_U32_LN(bs_write_metainfo.clock_hz);
+				  DEBUG_LN("Copied payload is");
+				  debug_dump_datablock(&bs_write_metainfo, sizeof(bs_write_metainfo));
+		#endif
 
 		  state->numWritten++;
 	  }
@@ -741,7 +757,7 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 	    	 DEBUG("block no: ");
 	  		  DEBUG_U32_LN(block_no);
 	     }
-	  debug_dump_datablock(data);
+	  debug_dump_datablock(data, BPB_SECTOR_SIZE);
 #endif
 
 
@@ -841,10 +857,9 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 				  boardconfig_write();
     		  }
         	  bs_write_marker_to_slot(slotidx, state->numBlocks, bs_size_written, bs_start_addy,
-        			  bs_write_metainfo.namelen, bs_write_metainfo.name);
+        			  &bs_write_metainfo);
     	  } else {
-    		  bs_write_marker(state->numBlocks, bs_size_written, bs_start_addy,
-    				  bs_write_metainfo.namelen, bs_write_metainfo.name);
+    		  bs_write_marker(state->numBlocks, bs_size_written, bs_start_addy,&bs_write_metainfo);
     	  }
 
     	  CDCWRITEFLUSH();

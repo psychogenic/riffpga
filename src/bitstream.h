@@ -25,17 +25,36 @@
 #ifndef SRC_BITSTREAM_H_
 #define SRC_BITSTREAM_H_
 
-#include "board_includes.h"
+#include "board_defs.h"
+
 #include "uf2.h"
 
 
 typedef  void (*bs_prog_yield_cb)(void);
 
+/*
+ * Bitstream_MetaInfo
+ * contents of meta info UF2 data block
+ * passed within written UF2 bin files
+ */
+typedef struct RIF_PACKED_STRUCT bitstream_metainfo_struct {
+	uint32_t bssize;
+	uint8_t namelen;
+	char name[BITSTREAM_NAME_MAXLEN];
+	uint32_t clock_hz;
+} Bitstream_MetaInfo;
+
+
+
+typedef struct bitstream_metainfo_payloadstruct {
+	uint8_t header[8]; // RFMETA01
+	Bitstream_MetaInfo info;
+} Bitstream_MetaInfo_Payload;
+
+
 typedef struct bsslotstatestruct {
 	bool found;
-	uint32_t size;
-	uint8_t namelen;
-	char name[BITSTREAM_NAME_MAXLEN + 1];
+	Bitstream_MetaInfo info;
 } Bitstream_Slot_Content;
 
 
@@ -69,36 +88,29 @@ uint8_t bs_slot_contents(Bitstream_Slot_Content * contents);
 
 
 void bs_write_marker(uint32_t num_blocks, uint32_t bitstream_size,
-		uint32_t address_start, uint8_t name_len,
-		uint8_t * name);
+		uint32_t address_start, Bitstream_MetaInfo *info);
 
 void bs_write_marker_to_slot(uint8_t slot, uint32_t num_blocks, uint32_t bitstream_size,
-		uint32_t address_start, uint8_t name_len,
-		uint8_t * name);
+		uint32_t address_start, Bitstream_MetaInfo *info);
 
 void bs_erase_slot(uint8_t slot);
+void bs_erase_all(void);
 
-typedef struct bitstream_metainfo_payloadstruct {
-	uint8_t header[8]; // BSMETA01
-	uint32_t bssize;
-	uint8_t namelen;
-	char name[BITSTREAM_NAME_MAXLEN + 1];
-} Bitstream_MetaInfo;
-
+typedef struct bitstream_settings_struct {
+	uint32_t size;
+	uint32_t uf2_file_size;
+	uint32_t start_address;
+	Bitstream_MetaInfo user_info;
+} Bitstream_Settings;
 
 typedef struct bitstream_state_struct {
 	bool have_checked;
 	UF2_Block info;
-	uint32_t size;
-	uint32_t uf2_file_size;
-	uint32_t start_address;
-	uint8_t namelen;
-	char name[BITSTREAM_NAME_MAXLEN + 1];
-
-
+	Bitstream_Settings settings;
 } Bitstream_Marker_State;
 
 const Bitstream_Marker_State * bs_marker_get(void);
+const Bitstream_Settings * bs_settings_get(void);
 
 uint32_t bs_load_marker(uint8_t slot, Bitstream_Marker_State * into);
 

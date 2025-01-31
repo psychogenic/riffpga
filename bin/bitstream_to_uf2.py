@@ -60,7 +60,8 @@ reserved_kb_for_bitstream_slot = 512
 
 metadata_start1_offset  = 0x42
 metadata_payload_header = "RFMETA"
-metadata_proj_name_maxlen = 22
+metadata_payload_version = "01"
+metadata_proj_name_maxlen = 23
 
 
 # derived values
@@ -86,9 +87,15 @@ def get_args():
     parser.add_argument('--name', required=False, type=str,
                         default='',
                         help='Pretty name for bitstream')
+    parser.add_argument('--autoclock', required=False, type=int,
+                        default=0,
+                        help='Auto-clock preference for project, in Hz [10-60e6]')
+                        
+        
     parser.add_argument('--appendslot', required=False,
                         action='store_true',
                         help='Append to slot to output file name')
+                        
     parser.add_argument('infile',
                         help='input bitstream')
     parser.add_argument('outfile', help='output UF2 file')
@@ -116,7 +123,8 @@ def get_new_uf2(settings:UF2Settings):
     return uf2
 
 
-def get_metadata_block(settings:UF2Settings, flash_address:int, filename:str, bitstreamSize:int, bitstreamName:str=None):
+def get_metadata_block(settings:UF2Settings, flash_address:int, bitstreamSize:int, autoclock:int, 
+    filename:str, bitstreamName:str=None):
     if bitstreamName is None or not len(bitstreamName):
         extsplit = os.path.splitext(filename)
         if extsplit and len(extsplit) > 1:
@@ -130,12 +138,23 @@ def get_metadata_block(settings:UF2Settings, flash_address:int, filename:str, bi
         bitstreamName = bitstreamName[:bsnamelenmax]
         bsnamelen = bsnamelenmax
 
-    target = bytearray(4+1)
-
-    metaheader = f'{metadata_payload_header}01'
+    bsnameArray = bytes(bitstreamName, encoding='ascii')
+    if bsnamelen < bsnamelenmax:
+        bsnameArray += bytearray(bsnamelenmax - bsnamelen)
+        
+    metaheader = f'{metadata_payload_header}{metadata_payload_version}'
     
-    struct.pack_into(f'<IB', target, 0, bitstreamSize, len(bitstreamName))
-    payload = bytes(metaheader, encoding='ascii') + target + bytes(bitstreamName, encoding='ascii')
+    # struct is 
+    #  char HEADER[6]
+    #  uint32 size
+    #  uint8  namelen
+    #  char name[metadata_proj_name_maxlen]
+    #  uint32 clock_hz
+    
+    payload = bytes(metaheader, encoding='ascii')
+    payload += struct.pack('<IB', bitstreamSize, bsnamelen) + bsnameArray
+    payload += struct.pack('<I', autoclock)
+    print(payload)
     hdr = Header(Flags.FamilyIDPresent | Flags.NotMainFlash, flash_address, len(payload), 0, 1, settings.boardFamily)
     return DataBlock(payload, hdr, magic_start1=(settings.magicStart1+metadata_start1_offset),
                         magic_end=settings.magicEnd)
@@ -152,6 +171,11 @@ def main():
     if len(args.name) > metadata_proj_name_maxlen:
         print(f'Name can only be up to {metadata_proj_name_maxlen} characters')
         sys.exit(-2) 
+        
+    if args.autoclock:
+        if args.autoclock < 10 or args.autoclock > 60e6:
+            print("Auto-clocking only supports rates between 10Hz and 60MHz")
+            sys.exit(-3)
         
     
     slotidx = args.slot - 1
@@ -180,7 +204,9 @@ def main():
     start_offset = start_page*page_blocks*1024
     
     # append a data block for meta information
-    uf2.append_datablock(get_metadata_block(uf2sets, start_offset, args.infile, len(payload_bytes), args.name))
+    uf2.append_datablock(get_metadata_block(uf2sets, start_offset, 
+                        len(payload_bytes), args.autoclock, 
+                        args.infile, args.name))
     uf2.append_payload(payload_bytes, 
                        start_offset=start_offset, 
                        block_payload_size=256)
