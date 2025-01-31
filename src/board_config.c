@@ -55,27 +55,30 @@ void boardconfig_init(void) {
 
 	_boardconf_is_init = true;
 	UF2_Block config_block;
-    board_flash_read(BOARD_CONFIG_FLASHADDRESS, &config_block, sizeof(UF2_Block));
+	board_flash_read(BOARD_CONFIG_FLASHADDRESS, &config_block,
+			sizeof(UF2_Block));
 
-    if (config_block.magicStart0 == UF2_MAGIC_START0 &&
-    		config_block.magicStart1 == BOARDCONF_UF2_MAGIC_START1 &&
-			config_block.magicEnd == BOARDCONF_UF2_MAGIC_END &&
-			config_block.familyID == BOARDCONF_UF2_FAMILY_ID) {
-    	DEBUG_LN("Have valid board config!");
-    	memcpy(&testBC, config_block.data, sizeof(BoardConfig));
-    	if (version_mismatch(&testBC.version, &curVer) == true) {
-    		// use something valid
-    		board_config_reinit();
-    		// but note we are out of date
-    		memcpy(&(_board_conf_singleton_obj.version), &(testBC.version), sizeof(VersionInfo));
-    	} else {
-    		// flash data all good
-    		memcpy(&_board_conf_singleton_obj, config_block.data, sizeof(BoardConfig));
-    	}
-    } else {
-    	DEBUG_LN("No config block--initializing");
-    	boardconfig_factoryreset();
-    }
+	if (config_block.magicStart0 == UF2_MAGIC_START0
+			&& config_block.magicStart1 == BOARDCONF_UF2_MAGIC_START1
+			&& config_block.magicEnd == BOARDCONF_UF2_MAGIC_END
+			&& config_block.familyID == BOARDCONF_UF2_FAMILY_ID) {
+		DEBUG_LN("Have valid board config!");
+		memcpy(&testBC, config_block.data, sizeof(BoardConfig));
+		if (version_mismatch(&testBC.version, &curVer) == true) {
+			// use something valid
+			board_config_reinit();
+			// but note we are out of date
+			memcpy(&(_board_conf_singleton_obj.version), &(testBC.version),
+					sizeof(VersionInfo));
+		} else {
+			// flash data all good
+			memcpy(&_board_conf_singleton_obj, config_block.data,
+					sizeof(BoardConfig));
+		}
+	} else {
+		DEBUG_LN("No config block--initializing");
+		boardconfig_factoryreset();
+	}
 }
 
 void boardconfig_factoryreset(void) {
@@ -87,7 +90,7 @@ void boardconfig_factoryreset(void) {
 }
 
 BoardConfigPtrConst boardconfig_get(void) {
-	if (! _boardconf_is_init) {
+	if (!_boardconf_is_init) {
 		boardconfig_init();
 	}
 
@@ -97,8 +100,7 @@ BoardConfigPtrConst boardconfig_get(void) {
 
 }
 
-
-FPGA_PWM * boardconfig_autoclocking(uint8_t idx) {
+FPGA_PWM* boardconfig_autoclocking(uint8_t idx) {
 	if (idx > 1) {
 		return NULL;
 	}
@@ -109,17 +111,14 @@ FPGA_PWM * boardconfig_autoclocking(uint8_t idx) {
 uint32_t boardconfig_bin_startoffset(void) {
 	BoardConfigPtrConst bc = boardconfig_get();
 
-	return bc->bin_position.slot_start_address[
-				bc->bin_position.selected_slot ];
+	return bc->bin_position.slot_start_address[bc->bin_position.selected_slot];
 }
 
 uint32_t boardconfig_bs_marker_address(void) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
-	return bc->bs_marker_position.slot_start_address[
-				bc->bs_marker_position.selected_slot ];
+	return bc->bs_marker_position.slot_start_address[bc->bs_marker_position.selected_slot];
 }
-
 
 uint32_t boardconfig_bs_marker_address_for(uint8_t slotidx) {
 
@@ -127,45 +126,38 @@ uint32_t boardconfig_bs_marker_address_for(uint8_t slotidx) {
 	return bc->bs_marker_position.slot_start_address[slotidx];
 }
 
-
 bool boardconfig_version_outdated(void) {
 	BoardConfigPtrConst bc = boardconfig_get();
-	if ( (bc->version.patchlevel < BOARD_VERSION_PATCH)
-		||
-		(bc->version.minor < BOARD_VERSION_MINOR)
-		||
-		(bc->version.major < BOARD_VERSION_MAJOR)
+	if ((bc->version.patchlevel < BOARD_VERSION_PATCH)
+			|| (bc->version.minor < BOARD_VERSION_MINOR)
+			|| (bc->version.major < BOARD_VERSION_MAJOR)
 
-	){
+			) {
 		return true;
 	}
 
 	return false;
 }
 
-static bool version_mismatch(const VersionInfo const * v1, const VersionInfo const * v2) {
-	if ( (v1->patchlevel != v2->patchlevel)
-			||
-			(v1->minor != v2->minor)
-			||
-			(v1->major != v2->major)
+static bool version_mismatch(const VersionInfo const *v1,
+		const VersionInfo const *v2) {
+	if ((v1->patchlevel != v2->patchlevel) || (v1->minor != v2->minor)
+			|| (v1->major != v2->major)
 
-		){
-			return true;
-		}
+			) {
+		return true;
+	}
 
 	return false;
 
 }
 bool boardconfig_version_mismatch(void) {
 	BoardConfigPtrConst bc = boardconfig_get();
-	if ( (bc->version.patchlevel != BOARD_VERSION_PATCH)
-		||
-		(bc->version.minor != BOARD_VERSION_MINOR)
-		||
-		(bc->version.major != BOARD_VERSION_MAJOR)
+	if ((bc->version.patchlevel != BOARD_VERSION_PATCH)
+			|| (bc->version.minor != BOARD_VERSION_MINOR)
+			|| (bc->version.major != BOARD_VERSION_MAJOR)
 
-	){
+			) {
 		return true;
 	}
 

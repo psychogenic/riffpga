@@ -24,11 +24,11 @@
 
 typedef struct uartbridgestatestruct {
 	bool is_init;
-	uart_inst_t * uart;
+	uart_inst_t *uart;
 
 } UartBridgeState;
 
-static UartBridgeState ubridgestate = {0};
+static UartBridgeState ubridgestate = { 0 };
 
 void uart_bridge_enable() {
 	// bconf->uart_bridge.
@@ -44,22 +44,19 @@ void uart_bridge_enable() {
 		ubridgestate.uart = uart1;
 	}
 
-
 	gpio_set_function(bc->uart_bridge.pin_tx,
-						UART_FUNCSEL_NUM(ubridgestate.uart, bc->uart_bridge.pin_tx));
+			UART_FUNCSEL_NUM(ubridgestate.uart, bc->uart_bridge.pin_tx));
 
 	gpio_set_function(bc->uart_bridge.pin_rx,
-						UART_FUNCSEL_NUM(ubridgestate.uart, bc->uart_bridge.pin_rx));
+			UART_FUNCSEL_NUM(ubridgestate.uart, bc->uart_bridge.pin_rx));
 	uart_init(ubridgestate.uart, bc->uart_bridge.baud);
-
-
 
 	ubridgestate.is_init = true;
 }
 void uart_bridge_disable() {
 
-	if (! ubridgestate.is_init ) {
-		return ;
+	if (!ubridgestate.is_init) {
+		return;
 	}
 
 	uart_deinit(ubridgestate.uart);
@@ -67,77 +64,74 @@ void uart_bridge_disable() {
 
 }
 
-
 bool uart_bridge_is_writable() {
 
-
-	if (! ubridgestate.is_init ) {
-		return false ;
+	if (!ubridgestate.is_init) {
+		return false;
 	}
 
 	return uart_is_writable(ubridgestate.uart);
 }
 void uart_bridge_tx_wait_blocking() {
-	if (! ubridgestate.is_init ) {
-		return ;
+	if (!ubridgestate.is_init) {
+		return;
 	}
 
 	uart_tx_wait_blocking(ubridgestate.uart);
 
 }
 bool uart_bridge_is_readable() {
-	if (! ubridgestate.is_init ) {
-		return false ;
+	if (!ubridgestate.is_init) {
+		return false;
 	}
 	return uart_is_readable(ubridgestate.uart);
 
 }
 void uart_bridge_write_blocking(const uint8_t *src, size_t len) {
-	if (! ubridgestate.is_init ) {
-		return ;
+	if (!ubridgestate.is_init) {
+		return;
 	}
 
 	uart_write_blocking(ubridgestate.uart, src, len);
 
 }
-void uart_bridge_read_blocking (uint8_t *dst, size_t len) {
-	if (! ubridgestate.is_init ) {
-		return ;
+void uart_bridge_read_blocking(uint8_t *dst, size_t len) {
+	if (!ubridgestate.is_init) {
+		return;
 	}
 	uart_read_blocking(ubridgestate.uart, dst, len);
 }
 void uart_bridge_putc_raw(char c) {
-	if (! ubridgestate.is_init ) {
-		return ;
+	if (!ubridgestate.is_init) {
+		return;
 	}
 	uart_putc_raw(ubridgestate.uart, c);
 
 }
 void uart_bridge_putc(char c) {
-	if (! ubridgestate.is_init ) {
-		return ;
+	if (!ubridgestate.is_init) {
+		return;
 	}
 	uart_putc(ubridgestate.uart, c);
 
 }
 void uart_bridge_puts(const char *s) {
-	if (! ubridgestate.is_init ) {
-		return ;
+	if (!ubridgestate.is_init) {
+		return;
 	}
 	uart_puts(ubridgestate.uart, s);
 
 }
 char uart_bridge_getc() {
-	if (! ubridgestate.is_init ) {
+	if (!ubridgestate.is_init) {
 		return 0;
 	}
 	return uart_getc(ubridgestate.uart);
 
 }
 
-
 void uart_bridge_tx_flush() {
-	if (! ubridgestate.is_init ) {
+	if (!ubridgestate.is_init) {
 		return;
 	}
 	uart_tx_wait_blocking(ubridgestate.uart);

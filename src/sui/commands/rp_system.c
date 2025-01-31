@@ -19,13 +19,12 @@
  *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "sui/commands/rp_system.h"
 #include "cdc_interface.h"
 #include "board.h"
 #include "debug.h"
 
-void cmd_rp2_reboot(SUIInteractionFunctions * funcs) {
+void cmd_rp2_reboot(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\nRebooting!  Virtual drive will dismount\r\n");
 	funcs->wait();
 	sleep_ms(250);
@@ -33,5 +32,4 @@ void cmd_rp2_reboot(SUIInteractionFunctions * funcs) {
 	funcs->wait();
 	board_reboot();
 }
-
 

@@ -25,8 +25,6 @@
 #include "fpga.h"
 #include "debug.h"
 
-
-
 typedef struct fpga_state_struct {
 
 	bool is_init;
@@ -39,16 +37,11 @@ typedef struct fpga_state_struct {
 	bool spi_tx_started;
 	uint8_t spi_idx;
 
-
-
-
 } FPGA_State;
 
-static volatile FPGA_State fpgastate = {0};
+static volatile FPGA_State fpgastate = { 0 };
 
 #define SPIDEVICE(fpgastate) (fpgastate.spi_idx == 0 ? spi0 : spi1)
-
-
 
 #define FPGA_DEBUG_ENABLE
 #ifdef FPGA_DEBUG_ENABLE
@@ -80,10 +73,6 @@ static volatile FPGA_State fpgastate = {0};
 #define FPGA_DEBUG_U8_LN(v)
 #endif
 
-
-
-
-
 volatile bool _fpga_extrst_done = false;
 
 volatile bool fpga_external_reset(void) {
@@ -94,9 +83,7 @@ void fpga_external_reset_handled(void) {
 	_fpga_extrst_done = false;
 }
 
-
-void gpio_int_callback(uint gpio, uint32_t event_mask)
-{
+void gpio_int_callback(uint gpio, uint32_t event_mask) {
 	// single, useless, centralized callback
 	// using gpio_add_raw_irq_handler to have a more
 	// fine-grained system
@@ -107,7 +94,8 @@ void reset_button_release(void) {
 	uint32_t irqmask = gpio_get_irq_event_mask(fpgastate.pin_reset);
 	if (irqmask) {
 		gpio_acknowledge_irq(fpgastate.pin_reset, irqmask);
-		if (fpgastate.is_init && fpgastate.reset_switch_enabled && ! fpgastate.in_reset) {
+		if (fpgastate.is_init && fpgastate.reset_switch_enabled
+				&& !fpgastate.in_reset) {
 			CDCWRITESTRING("\r\nRESET switch");
 			_fpga_extrst_done = true;
 		}
@@ -125,23 +113,24 @@ static void fpga_reset_monitor_enable(BoardConfigPtrConst bc, bool do_enable) {
 	}
 
 	fpgastate.reset_switch_enabled = false;
-    if (bc->fpga_cram.reset_inverted) {
+	if (bc->fpga_cram.reset_inverted) {
 
-    	gpio_set_irq_enabled (bc->fpga_cram.pin_reset, GPIO_IRQ_EDGE_RISE, do_enable);
-    } else {
-    	gpio_set_irq_enabled (bc->fpga_cram.pin_reset, GPIO_IRQ_EDGE_FALL, do_enable);
+		gpio_set_irq_enabled(bc->fpga_cram.pin_reset, GPIO_IRQ_EDGE_RISE,
+				do_enable);
+	} else {
+		gpio_set_irq_enabled(bc->fpga_cram.pin_reset, GPIO_IRQ_EDGE_FALL,
+				do_enable);
 
-    }
-
+	}
 
 }
 void fpga_init(void) {
 
-	uint8_t spi0_scks[] = {2, 6, 18, 22, 0xff};
+	uint8_t spi0_scks[] = { 2, 6, 18, 22, 0xff };
 
 	BoardConfigPtrConst bc = boardconfig_get();
 
-	uint8_t i=0;
+	uint8_t i = 0;
 	fpgastate.spi_idx = 1;
 	while (spi0_scks[i] != 0xff) {
 		if (bc->fpga_cram.spi.pin_sck == spi0_scks[i]) {
@@ -150,36 +139,31 @@ void fpga_init(void) {
 		i++;
 	}
 
-
-
-
-
 	spi_init(SPIDEVICE(fpgastate), bc->fpga_cram.spi.rate);
 	// NO: do it manual style gpio_set_function(PIN_FPGA_SPI_CS, GPIO_FUNC_SPI);
 	gpio_set_function(bc->fpga_cram.spi.pin_miso, GPIO_FUNC_SPI);
 	gpio_set_function(bc->fpga_cram.spi.pin_mosi, GPIO_FUNC_SPI);
 	gpio_set_function(bc->fpga_cram.spi.pin_sck, GPIO_FUNC_SPI);
 
-
 	spi_set_format(SPIDEVICE(fpgastate), 8, bc->fpga_cram.spi.polarity,
 			bc->fpga_cram.spi.phase,
 			bc->fpga_cram.spi.order /* unused... must be MSB */);
 
 	fpgastate.pin_reset = bc->fpga_cram.pin_reset;
-    gpio_init(bc->fpga_cram.pin_reset);
+	gpio_init(bc->fpga_cram.pin_reset);
 
-    fpga_reset(true);
+	fpga_reset(true);
 
-    if (bc->system.fpga_reset_external_trigger) {
-    	// setup the IRQ handler
-    	gpio_set_irq_enabled_with_callback(bc->fpga_cram.pin_reset,
-    			GPIO_IRQ_EDGE_RISE, true, gpio_int_callback);
-  	  gpio_add_raw_irq_handler(bc->fpga_cram.pin_reset, reset_button_release);
+	if (bc->system.fpga_reset_external_trigger) {
+		// setup the IRQ handler
+		gpio_set_irq_enabled_with_callback(bc->fpga_cram.pin_reset,
+				GPIO_IRQ_EDGE_RISE, true, gpio_int_callback);
+		gpio_add_raw_irq_handler(bc->fpga_cram.pin_reset, reset_button_release);
 
-    } else {
-    	fpga_set_reset_pin_dir(GPIO_OUT);
+	} else {
+		fpga_set_reset_pin_dir(GPIO_OUT);
 
-    }
+	}
 
 #ifdef FPGA_PROG_DONE_LEVEL
     gpio_init(bc->fpga_cram.pin_done);
@@ -188,11 +172,9 @@ void fpga_init(void) {
 
 	// NO: do it manual style gpio_set_function(PIN_FPGA_SPI_CS, GPIO_FUNC_SPI);
 
-    gpio_init(bc->fpga_cram.spi.pin_cs);
-    gpio_set_dir(bc->fpga_cram.spi.pin_cs, GPIO_OUT);
-    gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted);
-
-
+	gpio_init(bc->fpga_cram.spi.pin_cs);
+	gpio_set_dir(bc->fpga_cram.spi.pin_cs, GPIO_OUT);
+	gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted);
 
 	fpgastate.is_init = true;
 
@@ -200,7 +182,7 @@ void fpga_init(void) {
 
 void fpga_FPGA_DEBUG_spi_pins(void) {
 
-	uint8_t dummyData[5] = {0xaa, 0x55, 0x12, 0x33, 0xaa};
+	uint8_t dummyData[5] = { 0xaa, 0x55, 0x12, 0x33, 0xaa };
 	BoardConfigPtrConst bc = boardconfig_get();
 	spi_deinit(SPIDEVICE(fpgastate));
 
@@ -209,33 +191,28 @@ void fpga_FPGA_DEBUG_spi_pins(void) {
 	gpio_set_function(bc->fpga_cram.spi.pin_mosi, GPIO_FUNC_NULL);
 	gpio_set_function(bc->fpga_cram.spi.pin_sck, GPIO_FUNC_NULL);
 
+	gpio_init(bc->fpga_cram.spi.pin_sck);
+	gpio_set_dir(bc->fpga_cram.spi.pin_sck, GPIO_OUT);
 
-    gpio_init(bc->fpga_cram.spi.pin_sck);
-    gpio_set_dir(bc->fpga_cram.spi.pin_sck, GPIO_OUT);
+	gpio_init(bc->fpga_cram.spi.pin_mosi);
+	gpio_set_dir(bc->fpga_cram.spi.pin_mosi, GPIO_OUT);
 
-    gpio_init(bc->fpga_cram.spi.pin_mosi);
-    gpio_set_dir(bc->fpga_cram.spi.pin_mosi, GPIO_OUT);
+	for (uint8_t i = 0; i < 3; i++) {
+		gpio_put(bc->fpga_cram.spi.pin_cs, 0);
+		gpio_put(bc->fpga_cram.spi.pin_sck, 1);
+		gpio_put(bc->fpga_cram.spi.pin_mosi, 1);
+		gpio_put(bc->fpga_cram.spi.pin_sck, 0);
+		gpio_put(bc->fpga_cram.spi.pin_cs, 1);
+		gpio_put(bc->fpga_cram.spi.pin_mosi, 0);
 
-    for (uint8_t i=0; i<3; i++) {
-    	gpio_put(bc->fpga_cram.spi.pin_cs, 0);
-    	gpio_put(bc->fpga_cram.spi.pin_sck, 1);
-    	gpio_put(bc->fpga_cram.spi.pin_mosi, 1);
-    	gpio_put(bc->fpga_cram.spi.pin_sck, 0);
-    	gpio_put(bc->fpga_cram.spi.pin_cs, 1);
-    	gpio_put(bc->fpga_cram.spi.pin_mosi, 0);
+	}
 
-    }
+	fpga_init();
 
-
-    fpga_init();
-
-    fpga_enter_programming_mode();
-
+	fpga_enter_programming_mode();
 
 	fpga_spi_write(dummyData, 5); // DUMMY BYTE
-    fpga_exit_programming_mode();
-
-
+	fpga_exit_programming_mode();
 
 }
 
@@ -260,7 +237,7 @@ bool fpga_is_in_reset(void) {
 		return true;
 	}
 
-	if (fpga_external_reset_applied()){
+	if (fpga_external_reset_applied()) {
 		return true;
 	}
 
@@ -272,13 +249,13 @@ void fpga_reset(bool set_to) {
 		FPGA_DEBUG_LN("Resetting FPGA");
 		fpgastate.reset_switch_enabled = false;
 
-	    fpgastate.in_reset = true;
-	    fpgastate.is_programmed = false;
+		fpgastate.in_reset = true;
+		fpgastate.is_programmed = false;
 		if (bc->system.fpga_reset_external_trigger) {
 			fpga_reset_monitor_enable(bc, false); // disable IRQ
 			fpga_set_reset_pin_dir(GPIO_OUT);
 		}
-	    gpio_put(bc->fpga_cram.pin_reset, !bc->fpga_cram.reset_inverted);
+		gpio_put(bc->fpga_cram.pin_reset, !bc->fpga_cram.reset_inverted);
 	} else {
 
 		FPGA_DEBUG_LN("FPGA Reset RELEASE");
@@ -286,12 +263,12 @@ void fpga_reset(bool set_to) {
 		// about to release from reset, ensure we tell it it's in slave mode
 		gpio_put(bc->fpga_cram.spi.pin_cs, !bc->fpga_cram.spi.cs_inverted);
 		// now release
-	    gpio_put(bc->fpga_cram.pin_reset, bc->fpga_cram.reset_inverted);
-	    if (bc->system.fpga_reset_external_trigger) {
-	    	fpga_reset_monitor_enable(bc, true); // set to input and enable IRQ
-	    }
+		gpio_put(bc->fpga_cram.pin_reset, bc->fpga_cram.reset_inverted);
+		if (bc->system.fpga_reset_external_trigger) {
+			fpga_reset_monitor_enable(bc, true); // set to input and enable IRQ
+		}
 
-	    fpgastate.in_reset = false;
+		fpgastate.in_reset = false;
 	}
 
 	sleep_ms(FLASH_RESET_DELAY_MS);
@@ -299,7 +276,6 @@ void fpga_reset(bool set_to) {
 bool fpga_in_reset(void) {
 	return fpgastate.in_reset;
 }
-
 
 bool fpga_is_init(void) {
 	return fpgastate.is_init;
@@ -345,9 +321,8 @@ void fpga_enter_programming_mode(void) {
 	gpio_put(bc->fpga_cram.spi.pin_cs, !bc->fpga_cram.spi.cs_inverted); // select
 }
 
-
 void fpga_exit_programming_mode(void) {
-	uint8_t dummy_bytes[6] = {0};
+	uint8_t dummy_bytes[6] = { 0 };
 	fpga_spi_write(dummy_bytes, sizeof(dummy_bytes));
 
 	fpga_spi_transaction_end();
@@ -355,22 +330,22 @@ void fpga_exit_programming_mode(void) {
 
 void fpga_spi_transaction_begin(void) {
 	BoardConfigPtrConst bc = boardconfig_get();
-    gpio_put(bc->fpga_cram.spi.pin_cs, ! bc->fpga_cram.spi.cs_inverted); // select
+	gpio_put(bc->fpga_cram.spi.pin_cs, !bc->fpga_cram.spi.cs_inverted); // select
 
-    fpgastate.spi_tx_started = true;
-    asm volatile("nop \n nop \n nop");
+	fpgastate.spi_tx_started = true;
+	asm volatile("nop \n nop \n nop");
 }
 void fpga_spi_transaction_end(void) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
-    gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted); // release
+	gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted); // release
 
-    fpgastate.spi_tx_started = false;
+	fpgastate.spi_tx_started = false;
 }
 
-void fpga_spi_write(uint8_t * bts, size_t len) {
+void fpga_spi_write(uint8_t *bts, size_t len) {
 	bool end_tx = false;
-	if (! fpgastate.spi_tx_started) {
+	if (!fpgastate.spi_tx_started) {
 		end_tx = true;
 		fpga_spi_transaction_begin();
 	}

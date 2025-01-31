@@ -24,7 +24,7 @@
 #include "board_config.h"
 #include "io_inputs.h"
 
-void cmd_read_io_inputs(SUIInteractionFunctions * funcs) {
+void cmd_read_io_inputs(SUIInteractionFunctions *funcs) {
 	uint16_t readVal = io_inputs_value();
 	CDCWRITESTRING("\r\n Inputs currently: ");
 	cdc_write_dec_u16(readVal);

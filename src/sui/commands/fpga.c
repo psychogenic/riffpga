@@ -19,7 +19,6 @@
  *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "sui/commands/fpga.h"
 #include "cdc_interface.h"
 #include "board_config.h"
@@ -27,11 +26,10 @@
 #include "../../board.h"
 #include "bitstream.h"
 
-
-void cmd_fpga_erase(SUIInteractionFunctions * funcs) {
+void cmd_fpga_erase(SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING("\r\n Erasing FPGA bitstreams\r\n");
-	for (uint8_t i=0; i<POSITION_SLOTS_NUM; i++) {
+	for (uint8_t i = 0; i < POSITION_SLOTS_NUM; i++) {
 		bs_erase_slot(i);
 	}
 
@@ -41,7 +39,7 @@ void cmd_fpga_erase(SUIInteractionFunctions * funcs) {
 
 }
 
-void cmd_fpga_reset(SUIInteractionFunctions * funcs) {
+void cmd_fpga_reset(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\n Toggle FPGA reset, now: ");
 	if (fpga_is_in_reset() == false) {
 		fpga_reset(true);
@@ -52,7 +50,7 @@ void cmd_fpga_reset(SUIInteractionFunctions * funcs) {
 	}
 
 }
-void cmd_fpga_prog(SUIInteractionFunctions * funcs) {
+void cmd_fpga_prog(SUIInteractionFunctions *funcs) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
 
@@ -73,6 +71,5 @@ void cmd_fpga_prog(SUIInteractionFunctions * funcs) {
 #else
 	CDCWRITESTRING("n/a\r\n");
 #endif
-
 
 }

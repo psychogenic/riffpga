@@ -23,7 +23,6 @@
 #define IO_INPUTS_H_
 
 #include "board_includes.h"
-void io_irq_handler(void);
 
 // returns the number of switches
 // available

@@ -22,17 +22,12 @@
 #include "debug.h"
 #include "cdc_interface.h"
 
-const uint8_t *flash_read_access = (const uint8_t *) (XIP_BASE);
+const uint8_t *flash_read_access = (const uint8_t*) (XIP_BASE);
 #define MAX_NUM_PAGES 128
 
-
-static int16_t pages_erased[MAX_NUM_PAGES] = {-1};
+static int16_t pages_erased[MAX_NUM_PAGES] = { -1 };
 static uint32_t size_uf2_written = 0;
 static uint32_t uf2_start_address = 0;
-
-
-
-
 
 // define BRD_DEBUG_ENABLE
 #ifdef BRD_DEBUG_ENABLE
@@ -64,8 +59,6 @@ static uint32_t uf2_start_address = 0;
 #define BRD_DEBUG_U8_LN(v)
 #endif
 
-
-
 void board_reboot(void) {
 	watchdog_enable(250, 1);
 	// while(1) {}
@@ -76,18 +69,15 @@ void board_gpio_init(void) {
 
 }
 
-
 // Initialize flash for DFU
 void board_flash_init(void) {
 	board_size_written_clear();
 
 }
 
-
-
 static bool page_was_erased(uint16_t idx) {
 
-	for (uint8_t i=0; i<MAX_NUM_PAGES; i++) {
+	for (uint8_t i = 0; i < MAX_NUM_PAGES; i++) {
 		if (pages_erased[i] < 0) {
 			return 0;
 		}
@@ -99,10 +89,9 @@ static bool page_was_erased(uint16_t idx) {
 }
 
 static uint16_t page_index_for(uint32_t addr) {
-	uint16_t pid = (uint16_t)(addr >> 12);
+	uint16_t pid = (uint16_t) (addr >> 12);
 	return pid;
 }
-
 
 uint32_t board_first_written_address(void) {
 	return uf2_start_address;
@@ -110,7 +99,7 @@ uint32_t board_first_written_address(void) {
 int16_t board_first_written_page(void) {
 	int16_t first_page = 0x7fff;
 	bool found_pages = false;
-	for (uint8_t i=0; i<MAX_NUM_PAGES; i++) {
+	for (uint8_t i = 0; i < MAX_NUM_PAGES; i++) {
 		if (pages_erased[i] >= 0) {
 			if (pages_erased[i] < first_page) {
 				first_page = pages_erased[i];
@@ -125,21 +114,17 @@ int16_t board_first_written_page(void) {
 	return -1;
 }
 
-
 uint32_t page_address_from_index(uint16_t page_index) {
-	uint32_t addr = ((uint32_t)page_index) << 12;
+	uint32_t addr = ((uint32_t) page_index) << 12;
 	return addr;
 }
 
 static void mark_as_erased(uint16_t page_index) {
 
-	for (uint8_t i=0; i<MAX_NUM_PAGES; i++) {
+	for (uint8_t i = 0; i < MAX_NUM_PAGES; i++) {
 		if (pages_erased[i] < 0) {
 			pages_erased[i] = page_index;
-			BRD_DEBUG("Mark page ");
-			BRD_DEBUG_U16(page_index);
-			BRD_DEBUG(" erased @ ");
-			BRD_DEBUG_U8_LN(i);
+			BRD_DEBUG("Mark page "); BRD_DEBUG_U16(page_index); BRD_DEBUG(" erased @ "); BRD_DEBUG_U8_LN(i);
 			CDCWRITEFLUSH();
 
 			return;
@@ -153,27 +138,26 @@ uint32_t board_flash_size(void) {
 }
 
 // Read from flash
-void board_flash_read (uint32_t addr, void* buffer, uint32_t len) {
+void board_flash_read(uint32_t addr, void *buffer, uint32_t len) {
 	// BRD_DEBUG("flash read: ");
 	// BRD_DEBUG_U32_LN(addr);
 	uint32_t offset = addr;
-	memcpy(buffer, (void const *)&(flash_read_access[offset]), len);
+	memcpy(buffer, (void const*) &(flash_read_access[offset]), len);
 
 }
 
 static void call_flash_page_erase(void *param) {
-	uint16_t* page_index = (uint16_t*)param;
+	uint16_t *page_index = (uint16_t*) param;
 
 	uint32_t offset = page_address_from_index(*page_index);
-	BRD_DEBUG("Erasing @");
-	BRD_DEBUG_U32_LN(offset);
+	BRD_DEBUG("Erasing @"); BRD_DEBUG_U32_LN(offset);
 	flash_range_erase(offset, FLASH_SECTOR_SIZE);
 }
 
 static void call_flash_range_program(void *param) {
-	uint32_t offset = ((uintptr_t*)param)[0];
-	const uint8_t * data = (const uint8_t *)((uintptr_t*)param)[1];
-	const uint32_t * size = (const uint32_t*)((uintptr_t*)param)[2];
+	uint32_t offset = ((uintptr_t*) param)[0];
+	const uint8_t *data = (const uint8_t*) ((uintptr_t*) param)[1];
+	const uint32_t *size = (const uint32_t*) ((uintptr_t*) param)[2];
 	// BRD_DEBUG("Range prog @");
 	// BRD_DEBUG_U32(offset);
 	// BRD_DEBUG(" sz:");
@@ -182,16 +166,17 @@ static void call_flash_range_program(void *param) {
 	flash_range_program(offset, data, *size);
 }
 
-bool board_flash_write(uint32_t addr, void const* data, uint32_t len) {
-	(void)data;
-	(void)len;
+bool board_flash_write(uint32_t addr, void const *data, uint32_t len) {
+	(void) data;
+	(void) len;
 	// BRD_DEBUG("flash write: ");
 	// BRD_DEBUG_U32_LN(addr);
-	uint32_t* lenptr = &len;
+	uint32_t *lenptr = &len;
 	int rc;
 	uint16_t page_index = page_index_for(addr);
-	if (! page_was_erased(page_index) ) {
-		rc = flash_safe_execute(call_flash_page_erase, (void*)(&page_index), UINT32_MAX);
+	if (!page_was_erased(page_index)) {
+		rc = flash_safe_execute(call_flash_page_erase, (void*) (&page_index),
+				UINT32_MAX);
 		if (rc == PICO_OK) {
 			mark_as_erased(page_index);
 		} else {
@@ -203,15 +188,14 @@ bool board_flash_write(uint32_t addr, void const* data, uint32_t len) {
 	if (addr < uf2_start_address) {
 		uf2_start_address = addr;
 	}
-		uintptr_t params[] = { addr, (uintptr_t)data, (uintptr_t)lenptr};
-		rc = flash_safe_execute(call_flash_range_program, params, UINT32_MAX);
-		if (rc == PICO_OK) {
-			// BRD_DEBUG_LN("Wrote!");
-			size_uf2_written += len;
-		} else {
-			CDCWRITESTRING("\r\nWrite fail!!\r\n");
-		}
-
+	uintptr_t params[] = { addr, (uintptr_t) data, (uintptr_t) lenptr };
+	rc = flash_safe_execute(call_flash_range_program, params, UINT32_MAX);
+	if (rc == PICO_OK) {
+		// BRD_DEBUG_LN("Wrote!");
+		size_uf2_written += len;
+	} else {
+		CDCWRITESTRING("\r\nWrite fail!!\r\n");
+	}
 
 	return 1;
 
@@ -223,7 +207,7 @@ uint32_t board_size_written(void) {
 
 void board_flash_pages_erased_clear(void) {
 
-	for (uint8_t i=0; i<MAX_NUM_PAGES; i++) {
+	for (uint8_t i = 0; i < MAX_NUM_PAGES; i++) {
 		pages_erased[i] = -1;
 	}
 

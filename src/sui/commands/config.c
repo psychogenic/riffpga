@@ -26,30 +26,27 @@
 #include "sui/commands/fpga.h"
 #include "../../fpga.h"
 
-void cmd_factory_reset_config(SUIInteractionFunctions * funcs) {
+void cmd_factory_reset_config(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\nConfiguration Factory Reset!\r\n");
 	boardconfig_factoryreset();
 	cmd_dump_state(funcs);
 }
-void cmd_save_config(SUIInteractionFunctions * funcs) {
+void cmd_save_config(SUIInteractionFunctions *funcs) {
 	boardconfig_write();
 	CDCWRITESTRING("\r\nConfiguration saved.\r\n");
 	cmd_dump_state(funcs);
 }
 
-
-
-void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
+void cmd_select_active_slot(SUIInteractionFunctions *funcs) {
 
 	Bitstream_Slot_Content slot_contents[POSITION_SLOTS_ALLOWED];
-	uint8_t slot_programmed[POSITION_SLOTS_ALLOWED] = {0};
+	uint8_t slot_programmed[POSITION_SLOTS_ALLOWED] = { 0 };
 	uint8_t num_found = bs_slot_contents(slot_contents);
 
-
 	CDCWRITESTRING("\r\n");
-	for (uint8_t i=0; i<POSITION_SLOTS_ALLOWED; i++) {
+	for (uint8_t i = 0; i < POSITION_SLOTS_ALLOWED; i++) {
 		CDCWRITESTRING("  * ");
-		cdc_write_dec_u8((i+1));
+		cdc_write_dec_u8((i + 1));
 		CDCWRITESTRING(": ");
 		if (slot_contents[i].found == true) {
 			if (slot_contents[i].namelen) {
@@ -66,18 +63,14 @@ void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
 		funcs->wait();
 	}
 	CDCWRITEFLUSH();
-	if (! num_found ) {
+	if (!num_found) {
 		CDCWRITESTRING("\r\nNo programmed slots, aborting.\r\n");
 		return;
 	}
 
-
-
-
-
-	const char * prompt = "\r\nEnter slot to use [1-3]: ";
+	const char *prompt = "\r\nEnter slot to use [1-3]: ";
 	//BoardConfigPtrConst bc = boardconfig_get();
-	const Bitstream_Marker_State * bsmarkorig =  bs_marker_get();
+	const Bitstream_Marker_State *bsmarkorig = bs_marker_get();
 
 	CDCWRITESTRING("\r\nCurrent active slot is ");
 	cdc_write_dec_u8(boardconfig_selected_bitstream_slot() + 1);
@@ -92,20 +85,19 @@ void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
 		CDCWRITESTRING(", but no valid stream present.\r\n");
 	}
 
-	uint32_t slot_sel = sui_prompt_for_integer(prompt, strlen(prompt), funcs->write,
-			funcs->read, funcs->avail, funcs->wait);
+	uint32_t slot_sel = sui_prompt_for_integer(prompt, strlen(prompt),
+			funcs->write, funcs->read, funcs->avail, funcs->wait);
 
 	if (slot_sel < 1 || slot_sel > POSITION_SLOTS_ALLOWED) {
 		CDCWRITESTRING("\r\nInvalid slot, skipping\r\n");
 		return;
 	}
 
-	uint8_t slotidx = (uint8_t)slot_sel - 1;
+	uint8_t slotidx = (uint8_t) slot_sel - 1;
 
-	if (! slot_programmed[slotidx]) {
+	if (!slot_programmed[slotidx]) {
 		CDCWRITESTRING("\r\nHave selected an empty slot.\r\n");
 	}
-
 
 	boardconfig_set_bitstream_slot(slotidx);
 	CDCWRITESTRING("Slot ");
@@ -119,7 +111,7 @@ void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
 	uint32_t bs_size = bs_check_for_marker();
 	if (bs_size) {
 
-		const Bitstream_Marker_State * bsmark =  bs_marker_get();
+		const Bitstream_Marker_State *bsmark = bs_marker_get();
 
 		CDCWRITESTRING("Found bitstream of size ");
 		cdc_write_dec_u32(bs_size);
@@ -132,6 +124,4 @@ void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
 	}
 
 }
-
-
 

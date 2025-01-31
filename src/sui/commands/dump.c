@@ -19,16 +19,13 @@
  *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 #include "sui/commands/dump.h"
 #include "sui/commands/io.h"
 #include "board_config_defaults.h"
-
 #include "cdc_interface.h"
 #include "bitstream.h"
 
-static void dump_clocks(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
-
+static void dump_clocks(BoardConfigPtrConst bc, SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING(" Auto-clocking: ");
 	if (bc->clocking[0].enabled) {
@@ -36,7 +33,6 @@ static void dump_clocks(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs)
 	} else {
 		CDCWRITESTRING("DISABLED\r\n");
 	}
-
 
 	CDCWRITEFLUSH();
 	CDCWRITESTRING("\tpin: ");
@@ -57,10 +53,9 @@ static void dump_clocks(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs)
 	cdc_write_dec_u32_ln(sysclkhz);
 	CDCWRITEFLUSH();
 
-
-
 }
-static void dump_cram_conf(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
+static void dump_cram_conf(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING(" FPGA/CRAM pins: \r\n\tRESET: ");
 	cdc_write_dec_u8(bc->fpga_cram.pin_reset);
 	CDCWRITESTRING(", CDONE: ");
@@ -82,7 +77,8 @@ static void dump_cram_conf(BoardConfigPtrConst bc, SUIInteractionFunctions * fun
 	cdc_write_dec_u32_ln(bc->fpga_cram.spi.rate);
 	CDCWRITEFLUSH();
 }
-static void dump_uart_conf(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
+static void dump_uart_conf(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING(" UART bridge: ");
 	if (bc->uart_bridge.enabled) {
@@ -105,24 +101,25 @@ static void dump_uart_conf(BoardConfigPtrConst bc, SUIInteractionFunctions * fun
 	cdc_write_u8_ln(bc->uart_bridge.breakout_sequence[2]);
 
 }
-static void dump_switches_conf(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
+static void dump_switches_conf(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
 
-	for (uint8_t i=0; i<BOARD_MAX_NUM_SWITCHES; i++) {
-		if (bc->switches[i].function != (uint8_t)SwitchFunctionNOTSET) {
+	for (uint8_t i = 0; i < BOARD_MAX_NUM_SWITCHES; i++) {
+		if (bc->switches[i].function != (uint8_t) SwitchFunctionNOTSET) {
 			CDCWRITESTRING(" Switch ");
 			cdc_write_dec_u8(i);
 			CDCWRITESTRING(": ");
 			CDCWRITEFLUSH();
 			switch (bc->switches[i].function) {
-			case (uint8_t)SwitchFunctionReset:
-					CDCWRITESTRING("Reset");
-					break;
-			case (uint8_t)SwitchFunctionClocking:
-					CDCWRITESTRING("Clocking");
-					break;
-			case (uint8_t)SwitchFunctionUser:
-					CDCWRITESTRING("User");
-					break;
+			case (uint8_t) SwitchFunctionReset:
+				CDCWRITESTRING("Reset");
+				break;
+			case (uint8_t) SwitchFunctionClocking:
+				CDCWRITESTRING("Clocking");
+				break;
+			case (uint8_t) SwitchFunctionUser:
+				CDCWRITESTRING("User");
+				break;
 			default:
 				break;
 			}
@@ -145,7 +142,8 @@ static void dump_switches_conf(BoardConfigPtrConst bc, SUIInteractionFunctions *
 		}
 	}
 }
-static void dump_fpga_resetprog_state(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
+static void dump_fpga_resetprog_state(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
 
 	if (gpio_get(bc->fpga_cram.pin_reset)) {
 		if (bc->fpga_cram.reset_inverted) {
@@ -181,13 +179,14 @@ static void dump_fpga_resetprog_state(BoardConfigPtrConst bc, SUIInteractionFunc
 		CDCWRITESTRING("autoclock OFF.\r\n");
 	}
 }
-static void dump_gp_inputs(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
+static void dump_gp_inputs(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING(" GP Inputs: ");
-	if (! bc->system.num_inputs) {
+	if (!bc->system.num_inputs) {
 		CDCWRITESTRING("None\r\n");
 	} else {
-		for (uint8_t i=0; i<bc->system.num_inputs; i++) {
+		for (uint8_t i = 0; i < bc->system.num_inputs; i++) {
 			cdc_write_dec_u8(bc->system.input_io[i]);
 			CDCWRITECHAR(' ');
 		}
@@ -196,16 +195,17 @@ static void dump_gp_inputs(BoardConfigPtrConst bc, SUIInteractionFunctions * fun
 
 	}
 }
-static void dump_bitstream_info(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
+static void dump_bitstream_info(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
 
 	Bitstream_Slot_Content slot_contents[POSITION_SLOTS_ALLOWED];
-	const Bitstream_Marker_State * bsmark =  bs_marker_get();
+	const Bitstream_Marker_State *bsmark = bs_marker_get();
 
 	uint8_t num_found = bs_slot_contents(slot_contents);
 	CDCWRITESTRING(" Slot Contents\r\n");
-	for (uint8_t i=0; i<POSITION_SLOTS_ALLOWED; i++) {
+	for (uint8_t i = 0; i < POSITION_SLOTS_ALLOWED; i++) {
 		CDCWRITESTRING("  ");
-		cdc_write_dec_u8((i+1));
+		cdc_write_dec_u8((i + 1));
 		CDCWRITECHAR(':');
 		if (slot_contents[i].found == true) {
 			if (slot_contents[i].namelen) {
@@ -220,7 +220,6 @@ static void dump_bitstream_info(BoardConfigPtrConst bc, SUIInteractionFunctions 
 		CDCWRITEFLUSH();
 	}
 
-
 	CDCWRITESTRING("\r\n Using bitstream slot ");
 	cdc_write_dec_u8(1 + boardconfig_selected_bitstream_slot());
 	if (bsmark->size) {
@@ -233,11 +232,13 @@ static void dump_bitstream_info(BoardConfigPtrConst bc, SUIInteractionFunctions 
 		CDCWRITESTRING(", but no valid stream present.\r\n");
 	}
 }
-void cmd_dump_state(SUIInteractionFunctions * funcs) {
+void cmd_dump_state(SUIInteractionFunctions *funcs) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
-	const char * header= "\r\n\r\n*********************** State/Config **************************\r\n";
-	const char * footer=     "***************************************************************\r\n";
+	const char *header =
+			"\r\n\r\n*********************** State/Config **************************\r\n";
+	const char *footer =
+			"***************************************************************\r\n";
 	CDCWRITESTRING(header);
 	CDCWRITESTRING(" Board: ");
 	CDCWRITEFLUSH();
@@ -252,7 +253,7 @@ void cmd_dump_state(SUIInteractionFunctions * funcs) {
 	cdc_write_dec_u8_ln(bc->version.patchlevel);
 	CDCWRITESTRING("\r\n");
 	CDCWRITEFLUSH();
-	const Bitstream_Marker_State * bsmark =  bs_marker_get();
+	const Bitstream_Marker_State *bsmark = bs_marker_get();
 	if (bsmark->have_checked && bsmark->size) {
 
 		CDCWRITESTRING(" Project bitstream: ");
@@ -280,18 +281,16 @@ void cmd_dump_state(SUIInteractionFunctions * funcs) {
 
 	CDCWRITESTRING(footer);
 
-
 }
 
-
-void cmd_dump_raw_config(SUIInteractionFunctions * funcs) {
+void cmd_dump_raw_config(SUIInteractionFunctions *funcs) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
 
-	uint8_t * v = (uint8_t*)bc;
+	uint8_t *v = (uint8_t*) bc;
 
 	CDCWRITESTRING("\r\nBoardConfig Raw Bytes:\r\n");
-	for (uint32_t i=0; i<sizeof(BoardConfig); i++) {
+	for (uint32_t i = 0; i < sizeof(BoardConfig); i++) {
 		if (i % 32 == 0) {
 			CDCWRITESTRING("\r\n");
 			CDCWRITEFLUSH();

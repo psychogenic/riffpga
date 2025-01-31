@@ -24,29 +24,31 @@
 #include "debug.h"
 #include "cdc_interface.h"
 
-uint32_t sui_prompt_for_integer(const char * prompt, uint32_t len,
-		writestring_func wr, readchar_func rd, charavail_func avail, bgwaittask waittask) {
+uint32_t sui_prompt_for_integer(const char *prompt, uint32_t len,
+		writestring_func wr, readchar_func rd, charavail_func avail,
+		bgwaittask waittask) {
 	wr(prompt, len);
 	return sui_read_integer(rd, avail, waittask);
 
 }
 
-
-uint8_t sui_read_string(readchar_func rd, charavail_func avail, bgwaittask waittask, char * buffer, uint8_t maxlen) {
+uint8_t sui_read_string(readchar_func rd, charavail_func avail,
+		bgwaittask waittask, char *buffer, uint8_t maxlen) {
 
 	bool have_val = false;
 	uint8_t charcount = 0;
 	while ((have_val == false) && (charcount < maxlen)) {
-		if (! avail() ) {
+		if (!avail()) {
 			waittask();
 		} else {
 			char c = rd();
-			if (c == 0x08 /* backspace */ ){
+			if (c == 0x08 /* backspace */) {
 				if (charcount) {
 					cdc_write_char(c);
 					charcount -= 1;
 				}
-			} else if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c < ' ' || c > 'z') {
+			} else if (c == ' ' || c == '\t' || c == '\r' || c == '\n'
+					|| c < ' ' || c > 'z') {
 				have_val = true;
 				cdc_write("\r\n", 2);
 				CDCWRITEFLUSH();
@@ -65,18 +67,19 @@ uint8_t sui_read_string(readchar_func rd, charavail_func avail, bgwaittask waitt
 
 }
 
-uint32_t sui_read_integer(readchar_func rd, charavail_func avail, bgwaittask waittask) {
+uint32_t sui_read_integer(readchar_func rd, charavail_func avail,
+		bgwaittask waittask) {
 
 	bool have_val = false;
 	uint32_t v = 0;
-	uint8_t digits[11] = {0};
+	uint8_t digits[11] = { 0 };
 	uint8_t dig_count = 0;
 	while (have_val == false) {
-		while (! avail() ) {
+		while (!avail()) {
 			waittask();
 		}
 		char c = rd();
-		if (c == 0x08 /* backspace */ ){
+		if (c == 0x08 /* backspace */) {
 			if (dig_count) {
 				dig_count -= 1;
 			}
@@ -90,7 +93,7 @@ uint32_t sui_read_integer(readchar_func rd, charavail_func avail, bgwaittask wai
 		CDCWRITEFLUSH();
 		// tud_cdc_write_flush();
 	}
-	for (uint8_t i=0 ; i<dig_count; i++) {
+	for (uint8_t i = 0; i < dig_count; i++) {
 		v = v * 10;
 		v += digits[i];
 	}

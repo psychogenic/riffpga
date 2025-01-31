@@ -21,30 +21,27 @@
 
 #include "sui/commands/uart.h"
 
-
 #include "board_config.h"
 #include "cdc_interface.h"
 #include "bitstream.h"
 #include "uart_bridge.h"
 
-void cmd_uartbridge_enable(SUIInteractionFunctions * funcs) {
+void cmd_uartbridge_enable(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\nEnabling UART bridge\r\n");
 	uart_bridge_enable();
 	boardconfig_uartbridge_enable();
 }
 
-
-void cmd_uartbridge_baudrate(SUIInteractionFunctions * funcs) {
-	const char * prompt = "\r\nEnter value [baud]: ";
+void cmd_uartbridge_baudrate(SUIInteractionFunctions *funcs) {
+	const char *prompt = "\r\nEnter value [baud]: ";
 
 	BoardConfigPtrConst bc = boardconfig_get();
 
 	CDCWRITESTRING("\r\nUART bridge baudrate now: ");
 	cdc_write_dec_u32_ln(bc->uart_bridge.baud);
-	uint32_t setting = sui_prompt_for_integer(prompt, strlen(prompt), funcs->write,
-			funcs->read, funcs->avail, funcs->wait);
+	uint32_t setting = sui_prompt_for_integer(prompt, strlen(prompt),
+			funcs->write, funcs->read, funcs->avail, funcs->wait);
 	if (setting < 9600) {
-
 		CDCWRITESTRING("\r\ncancelled.");
 	} else {
 		boardconfig_set_uartbridge_baudrate(setting);

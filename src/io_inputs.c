@@ -32,20 +32,15 @@ typedef struct switchconfstruct {
 	uint8_t inverted;
 } SwitchConfigCache;
 
-static SwitchConfigCache _sw_config[BOARD_MAX_NUM_SWITCHES] = {0};
+static SwitchConfigCache _sw_config[BOARD_MAX_NUM_SWITCHES] = { 0 };
 static uint8_t _sw_manual_clock_idx = 0;
 
-static volatile bool _sw_interrupt[BOARD_MAX_NUM_SWITCHES] = {false};
-
-void io_irq_handler(void) {
-
-}
-
+static volatile bool _sw_interrupt[BOARD_MAX_NUM_SWITCHES] = { false };
 
 // static char event_str[128];
 static void sw_interrupt_triggered(void) {
 
-	for (uint8_t i=0; i<BOARD_MAX_NUM_SWITCHES; i++) {
+	for (uint8_t i = 0; i < BOARD_MAX_NUM_SWITCHES; i++) {
 		uint32_t irqmask = gpio_get_irq_event_mask(_sw_config[i].pin);
 
 		gpio_acknowledge_irq(_sw_config[i].pin, irqmask);
@@ -57,7 +52,6 @@ static void sw_interrupt_triggered(void) {
 		}
 	}
 }
-
 
 volatile bool io_switch_interrupted(uint8_t idx) {
 	return _sw_interrupt[idx];
@@ -75,7 +69,7 @@ void io_manualclock_switch_interrupt_clear() {
 }
 
 bool io_switch_state(uint8_t idx) {
-	if (! _sw_config[idx].inverted ) {
+	if (!_sw_config[idx].inverted) {
 		return gpio_get(_sw_config[idx].pin) ? true : false;
 	}
 
@@ -94,32 +88,32 @@ uint8_t io_switches_init(void) {
 
 	BoardConfigPtrConst bconf = boardconfig_get();
 	uint8_t num = 0;
-	  for (uint8_t i=0; i<BOARD_MAX_NUM_SWITCHES; i++) {
-		  _sw_config[i].function = bconf->switches[i].function;
-		  if (bconf->switches[i].function == SwitchFunctionNOTSET) {
-			  _sw_config[i].enabled = false;
-			  continue;
-		  }
+	for (uint8_t i = 0; i < BOARD_MAX_NUM_SWITCHES; i++) {
+		_sw_config[i].function = bconf->switches[i].function;
+		if (bconf->switches[i].function == SwitchFunctionNOTSET) {
+			_sw_config[i].enabled = false;
+			continue;
+		}
 
-		  if (bconf->switches[i].function == SwitchFunctionClocking) {
-			  _sw_manual_clock_idx = i;
-		  }
-		  _sw_config[i].inverted = bconf->switches[i].inverted;
-		  _sw_config[i].enabled = true;
-		  _sw_config[i].pin = bconf->switches[i].pin;
+		if (bconf->switches[i].function == SwitchFunctionClocking) {
+			_sw_manual_clock_idx = i;
+		}
+		_sw_config[i].inverted = bconf->switches[i].inverted;
+		_sw_config[i].enabled = true;
+		_sw_config[i].pin = bconf->switches[i].pin;
 
-		  gpio_init(_sw_config[i].pin);
-		  gpio_set_dir(_sw_config[i].pin, GPIO_IN);
-		  //gpio_set_irq_enabled_with_callback(_sw_config[i].pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
-		  // 		  true, sw_interrupt_triggered);
+		gpio_init(_sw_config[i].pin);
+		gpio_set_dir(_sw_config[i].pin, GPIO_IN);
+		//gpio_set_irq_enabled_with_callback(_sw_config[i].pin, GPIO_IRQ_EDGE_RISE | GPIO_IRQ_EDGE_FALL,
+		// 		  true, sw_interrupt_triggered);
 
-		  gpio_add_raw_irq_handler(_sw_config[i].pin, sw_interrupt_triggered);
+		gpio_add_raw_irq_handler(_sw_config[i].pin, sw_interrupt_triggered);
 
-		  gpio_set_irq_enabled (_sw_config[i].pin, GPIO_IRQ_EDGE_RISE, true);
-		  num++;
-	  }
+		gpio_set_irq_enabled(_sw_config[i].pin, GPIO_IRQ_EDGE_RISE, true);
+		num++;
+	}
 
-	  return num;
+	return num;
 
 }
 
@@ -127,31 +121,30 @@ void io_inputs_init(void) {
 
 	BoardConfigPtrConst bconf = boardconfig_get();
 
-	if (! bconf->system.num_inputs) {
+	if (!bconf->system.num_inputs) {
 
 		return;
 	}
 
-	for (uint8_t i; i<bconf->system.num_inputs; i++) {
+	for (uint8_t i; i < bconf->system.num_inputs; i++) {
 		gpio_init(bconf->system.input_io[i]);
 		gpio_set_dir(bconf->system.input_io[i], GPIO_IN);
 		gpio_pull_up(bconf->system.input_io[i]);
 	}
-
 
 }
 uint16_t io_inputs_value(void) {
 	uint16_t retVal = 0;
 	BoardConfigPtrConst bconf = boardconfig_get();
 
-	if (! bconf->system.num_inputs) {
+	if (!bconf->system.num_inputs) {
 		DEBUG_LN("No inputs configured!");
 		return 0;
 	}
 
-	for (uint8_t i; i<bconf->system.num_inputs; i++) {
+	for (uint8_t i; i < bconf->system.num_inputs; i++) {
 		if (gpio_get(bconf->system.input_io[i])) {
-			retVal |= ( 1 << (i));
+			retVal |= (1 << (i));
 		}
 
 	}

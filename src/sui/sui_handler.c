@@ -24,30 +24,27 @@
 #include "cdc_interface.h"
 #include "debug.h"
 
+void sui_handle_request(writestring_func wr, readchar_func rd,
+		charavail_func avail, bgwaittask waittask) {
+	char input_buffer[SUI_COMMAND_MAXLEN + 1];
 
-void sui_handle_request(writestring_func wr, readchar_func rd, charavail_func avail, bgwaittask waittask) {
-	char input_buffer[SUI_COMMAND_MAXLEN+1];
-
-	SUIInteractionFunctions funcs = {
-			.wait = waittask,
-			.read = rd,
-			.write = wr,
+	SUIInteractionFunctions funcs = { .wait = waittask, .read = rd, .write = wr,
 			.avail = avail
 
 	};
 
-	if (! avail() ) {
+	if (!avail()) {
 		return;
 	}
 
-	uint8_t numchars = sui_read_string(rd, avail, waittask, input_buffer, SUI_COMMAND_MAXLEN);
-	if (! numchars ) {
+	uint8_t numchars = sui_read_string(rd, avail, waittask, input_buffer,
+			SUI_COMMAND_MAXLEN);
+	if (!numchars) {
 		CDCWRITESTRING("\r\n> ");
 		return;
 	}
 
-
-	CommandInfo * cmd = sui_command_by_name(input_buffer);
+	CommandInfo *cmd = sui_command_by_name(input_buffer);
 	if (cmd != NULL) {
 		if (cmd->needs_confirmation == false) {
 			// just run it
@@ -58,7 +55,8 @@ void sui_handle_request(writestring_func wr, readchar_func rd, charavail_func av
 			CDCWRITESTRING("' [y/N]? ");
 
 			CDCWRITEFLUSH();
-			uint8_t numconfchars =  sui_read_string(rd, avail, waittask, input_buffer, SUI_COMMAND_MAXLEN);
+			uint8_t numconfchars = sui_read_string(rd, avail, waittask,
+					input_buffer, SUI_COMMAND_MAXLEN);
 			if (input_buffer[0] == 'y' || input_buffer[0] == 'Y') {
 				CDCWRITESTRING("\r\n Acknowledged.  Running.\r\n");
 
@@ -67,7 +65,6 @@ void sui_handle_request(writestring_func wr, readchar_func rd, charavail_func av
 				CDCWRITESTRING("\r\n Aborted.  Skipping.\r\n");
 			}
 		}
-
 
 		CDCWRITESTRING("\r\n> ");
 		CDCWRITEFLUSH();

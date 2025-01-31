@@ -26,22 +26,22 @@
 #include "bitstream.h"
 #include "driver_state.h"
 
-void cmd_set_sys_clock_hz(SUIInteractionFunctions * funcs) {
-	const char * prompt = "\r\nEnter value [Hz]: ";
+void cmd_set_sys_clock_hz(SUIInteractionFunctions *funcs) {
+	const char *prompt = "\r\nEnter value [Hz]: ";
 	CDCWRITESTRING("Sys Clock now: ");
 	cdc_write_dec_u32_ln(clock_get_hz(clk_sys));
 	CDCWRITEFLUSH();
 
-	uint32_t setting = sui_prompt_for_integer(prompt, strlen(prompt), funcs->write,
-			funcs->read, funcs->avail, funcs->wait);
+	uint32_t setting = sui_prompt_for_integer(prompt, strlen(prompt),
+			funcs->write, funcs->read, funcs->avail, funcs->wait);
 
 	if (setting > 1000) {
 		boardconfig_set_systemclock_hz(setting);
 	}
 }
 
-void cmd_set_autoclock_hz(SUIInteractionFunctions * funcs) {
-	const char * prompt = "\r\nEnter value [Hz]: ";
+void cmd_set_autoclock_hz(SUIInteractionFunctions *funcs) {
+	const char *prompt = "\r\nEnter value [Hz]: ";
 	CDCWRITESTRING("Auto clock now: ");
 
 	BoardConfigPtrConst bc = boardconfig_get();
@@ -55,8 +55,8 @@ void cmd_set_autoclock_hz(SUIInteractionFunctions * funcs) {
 		CDCWRITESTRING("DISABLED ");
 	}
 
-	uint32_t setting = sui_prompt_for_integer(prompt, strlen(prompt), funcs->write,
-			funcs->read, funcs->avail, funcs->wait);
+	uint32_t setting = sui_prompt_for_integer(prompt, strlen(prompt),
+			funcs->write, funcs->read, funcs->avail, funcs->wait);
 
 	if (setting < 10) {
 		CDCWRITESTRING("Values < 10, use manual.\r\n");
@@ -67,7 +67,7 @@ void cmd_set_autoclock_hz(SUIInteractionFunctions * funcs) {
 	}
 
 }
-void cmd_set_autoclock_manual(SUIInteractionFunctions * funcs) {
+void cmd_set_autoclock_manual(SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING("Auto clock was: ");
 
