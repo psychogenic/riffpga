@@ -182,11 +182,6 @@ void tud_msc_write10_complete_cb(uint8_t lun) {
       printf("written %u bytes in %.02f seconds.\r\n", wr_byte, _write_ms / 1000.0F);
       printf("Speed : %.02f KB/s\r\n", (wr_byte / 1000.0F) / (_write_ms / 1000.0F));
       #endif
-
-
-      // TU_LOG1("Writing finished\r\n");
-      // TODO:FIXME indicator_set(STATE_WRITING_FINISHED);
-      // TODO:FIXME board_dfu_complete();
     }
   }
 }

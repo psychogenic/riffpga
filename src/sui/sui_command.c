@@ -21,12 +21,14 @@
 
 #include "cdc_interface.h"
 #include "sui_command.h"
+#include "debug.h"
 #include "sui/commands/clocking.h"
 #include "sui/commands/config.h"
 #include "sui/commands/dump.h"
 #include "sui/commands/fpga.h"
 #include "sui/commands/io.h"
 #include "sui/commands/uart.h"
+#include "sui/commands/rp_system.h"
 
 
 
@@ -61,21 +63,21 @@
 static CommandInfo commands[] = {
 		{
 				.command = "slot",
-				.help = "FPGA bitstream slot",
+				.help = "Select FPGA bitstream slot",
 				.hotkey = 'S',
 				.needs_confirmation = false,
 				.cb = cmd_select_active_slot
 		},
 		{
 				.command = "projclock",
-				.help = "Project auto-clock Hz",
+				.help = "Project Auto-Clocking",
 				.hotkey = 'A',
 				.needs_confirmation = false,
 				.cb = cmd_set_autoclock_hz
 		},
 		{
 				.command = "manualclock",
-				.help = "Stop auto-clocking",
+				.help = "Stop Auto-Clocking",
 				.hotkey = 'M',
 				.needs_confirmation = true,
 				.cb = cmd_set_autoclock_manual
@@ -94,9 +96,18 @@ static CommandInfo commands[] = {
 				.needs_confirmation = false,
 				.cb = cmd_fpga_prog
 		},
+
+		{
+				.command = "fpgaerase",
+				.help = "Erase all FPGA slots and reset",
+				.hotkey = 'E',
+				.needs_confirmation = true,
+				.cb = cmd_fpga_erase
+		},
+
 		{
 				.command = "sysclock",
-				.help = "System clock Hz",
+				.help = "RP2 System Clock",
 				.hotkey = 'C',
 				.needs_confirmation = false,
 				.cb = cmd_set_sys_clock_hz
@@ -118,7 +129,7 @@ static CommandInfo commands[] = {
 #if SYSTEM_INPUTS_NUM > 0
 		{
 				.command = "readinputs",
-				.help = "Read inputs",
+				.help = "Read Inputs",
 				.hotkey = 'I',
 				.needs_confirmation = false,
 				.cb = cmd_read_io_inputs
@@ -131,13 +142,6 @@ static CommandInfo commands[] = {
 				.hotkey = 'D',
 				.needs_confirmation = false,
 				.cb = cmd_dump_state
-		},
-		{
-				.command = "rawconf",
-				.help = "Dump config, raw bytes",
-				.hotkey = 'W',
-				.needs_confirmation = false,
-				.cb = cmd_dump_raw_config
 		},
 
 		{
@@ -154,9 +158,26 @@ static CommandInfo commands[] = {
 				.needs_confirmation = true,
 				.cb = cmd_factory_reset_config
 		},
+#ifdef DEBUG_OUTPUT_ENABLED
+		{
+				.command = "rawconf",
+				.help = "Dump config, raw bytes",
+				.hotkey = 'W',
+				.needs_confirmation = false,
+				.cb = cmd_dump_raw_config
+		},
+#endif
+		{
+				.command = "reboot",
+				.help = "Reboot the RP2 chip",
+				.hotkey = 'T',
+				.needs_confirmation = true,
+				.cb = cmd_rp2_reboot
+		},
+
 		{
 				.command = "?",
-				.help = "show this help",
+				.help = "Show this help",
 				.hotkey = 'H',
 				.needs_confirmation = false,
 				.cb = sui_command_show_help

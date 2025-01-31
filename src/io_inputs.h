@@ -23,6 +23,21 @@
 #define IO_INPUTS_H_
 
 #include "board_includes.h"
+void io_irq_handler(void);
+
+// returns the number of switches
+// available
+uint8_t io_switches_init(void);
+bool io_switch_state(uint8_t idx);
+bool io_manualclock_switch_state();
+volatile bool io_manualclock_switch_interrupted();
+void io_manualclock_switch_interrupt_clear();
+
+volatile bool io_switch_interrupted(uint8_t idx);
+void io_switch_interrupt_clear(uint8_t idx);
+
+
+
 
 void io_inputs_init(void);
 uint16_t io_inputs_value(void);

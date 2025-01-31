@@ -1,10 +1,10 @@
 /*
- * fpga.h, part of the riffpga project
+ * driver_state.h, part of the ASICSim2 project
  *
- *  Created on: Dec 18, 2024
+ *  Created on: Jan 30, 2025
  *      Author: Pat Deegan
  *    Copyright (C) 2025 Pat Deegan, https://psychogenic.com
- *    
+ *
  *    This program is free software: you can redistribute it and/or modify
  *    it under the terms of the GNU General Public License as published by
  *    the Free Software Foundation, either version 3 of the License, or
@@ -19,37 +19,22 @@
  *    along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef SRC_FPGA_H_
-#define SRC_FPGA_H_
+#ifndef DRIVER_STATE_H_
+#define DRIVER_STATE_H_
 
 #include "board_includes.h"
 
-void fpga_init(void);
-bool fpga_is_init(void);
+typedef struct driverstatestruct {
 
-bool fpga_is_in_reset(void);
+	uint32_t blink_interval_ms;
+	bool have_programmed;
+	bool immediate_led_blink;
+	bool clocking_manually;
+} DriverState;
 
-volatile bool fpga_external_reset(void);
-void fpga_external_reset_handled(void);
-
-
-
-void fpga_debug_spi_pins(void);
-
-void fpga_enter_programming_mode(void);
-void fpga_exit_programming_mode(void);
-
-bool fpga_is_programmed(void);
-void fpga_set_programmed(bool set_to);
-void fpga_reset(bool set_to); /* true==in reset */
-bool fpga_in_reset(void);
-bool fpga_external_reset_applied(void);
-
-
-void fpga_spi_transaction_begin(void);
-void fpga_spi_transaction_end(void);
-void fpga_spi_write(uint8_t * bts, size_t len);
+extern DriverState MainDriverState;
 
 
 
-#endif /* SRC_FPGA_H_ */
+
+#endif /* DRIVER_STATE_H_ */

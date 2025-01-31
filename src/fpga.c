@@ -21,6 +21,7 @@
 
 #include "board_defs.h"
 #include "board_config.h"
+#include "board_config_defaults.h"
 #include "fpga.h"
 #include "debug.h"
 
@@ -31,6 +32,10 @@ typedef struct fpga_state_struct {
 	bool is_init;
 	bool is_programmed;
 	bool in_reset;
+	uint8_t pin_reset;
+	uint8_t pin_reset_dir;
+	bool reset_switch_enabled;
+
 	bool spi_tx_started;
 	uint8_t spi_idx;
 
@@ -80,7 +85,6 @@ static volatile FPGA_State fpgastate = {0};
 
 
 volatile bool _fpga_extrst_done = false;
-volatile bool _fpga_extrst_switch_done = false;
 
 volatile bool fpga_external_reset(void) {
 	return _fpga_extrst_done;
@@ -91,36 +95,44 @@ void fpga_external_reset_handled(void) {
 }
 
 
-void reset_button_release(uint gpio, uint32_t event_mask)
+void gpio_int_callback(uint gpio, uint32_t event_mask)
 {
-	if (! fpgastate.in_reset) {
-		if (_fpga_extrst_switch_done == true) {
+	// single, useless, centralized callback
+	// using gpio_add_raw_irq_handler to have a more
+	// fine-grained system
+
+}
+
+void reset_button_release(void) {
+	uint32_t irqmask = gpio_get_irq_event_mask(fpgastate.pin_reset);
+	if (irqmask) {
+		gpio_acknowledge_irq(fpgastate.pin_reset, irqmask);
+		if (fpgastate.is_init && fpgastate.reset_switch_enabled && ! fpgastate.in_reset) {
+			CDCWRITESTRING("\r\nRESET switch");
 			_fpga_extrst_done = true;
 		}
-		_fpga_extrst_switch_done = true;
+		fpgastate.reset_switch_enabled = true;
 	}
-	// Doesn't do anything?
-	gpio_acknowledge_irq(gpio, event_mask);
-
-	// cdc_write_u32_ln(gpio);
-	// cdc_write_u32_ln(event_mask);
-
-
-
+}
+static void fpga_set_reset_pin_dir(uint8_t dir) {
+	fpgastate.pin_reset_dir = dir;
+	gpio_set_dir(fpgastate.pin_reset, dir);
 }
 static void fpga_reset_monitor_enable(BoardConfigPtrConst bc, bool do_enable) {
 
 	if (do_enable == true) {
-		_fpga_extrst_switch_done = false;
-		gpio_set_dir(bc->fpga_cram.pin_reset, GPIO_IN);
+		fpga_set_reset_pin_dir(GPIO_IN);
 	}
 
+	fpgastate.reset_switch_enabled = false;
     if (bc->fpga_cram.reset_inverted) {
+
     	gpio_set_irq_enabled (bc->fpga_cram.pin_reset, GPIO_IRQ_EDGE_RISE, do_enable);
     } else {
     	gpio_set_irq_enabled (bc->fpga_cram.pin_reset, GPIO_IRQ_EDGE_FALL, do_enable);
 
     }
+
 
 }
 void fpga_init(void) {
@@ -141,8 +153,6 @@ void fpga_init(void) {
 
 
 
-	fpgastate.is_init = true;
-
 
 	spi_init(SPIDEVICE(fpgastate), bc->fpga_cram.spi.rate);
 	// NO: do it manual style gpio_set_function(PIN_FPGA_SPI_CS, GPIO_FUNC_SPI);
@@ -155,6 +165,7 @@ void fpga_init(void) {
 			bc->fpga_cram.spi.phase,
 			bc->fpga_cram.spi.order /* unused... must be MSB */);
 
+	fpgastate.pin_reset = bc->fpga_cram.pin_reset;
     gpio_init(bc->fpga_cram.pin_reset);
 
     fpga_reset(true);
@@ -162,14 +173,18 @@ void fpga_init(void) {
     if (bc->system.fpga_reset_external_trigger) {
     	// setup the IRQ handler
     	gpio_set_irq_enabled_with_callback(bc->fpga_cram.pin_reset,
-    			GPIO_IRQ_EDGE_RISE, true, reset_button_release);
+    			GPIO_IRQ_EDGE_RISE, true, gpio_int_callback);
+  	  gpio_add_raw_irq_handler(bc->fpga_cram.pin_reset, reset_button_release);
+
     } else {
-        gpio_set_dir(bc->fpga_cram.pin_reset, GPIO_OUT);
+    	fpga_set_reset_pin_dir(GPIO_OUT);
 
     }
 
+#ifdef FPGA_PROG_DONE_LEVEL
     gpio_init(bc->fpga_cram.pin_done);
     gpio_set_dir(bc->fpga_cram.pin_done, GPIO_IN);
+#endif
 
 	// NO: do it manual style gpio_set_function(PIN_FPGA_SPI_CS, GPIO_FUNC_SPI);
 
@@ -178,6 +193,8 @@ void fpga_init(void) {
     gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted);
 
 
+
+	fpgastate.is_init = true;
 
 }
 
@@ -222,19 +239,44 @@ void fpga_FPGA_DEBUG_spi_pins(void) {
 
 }
 
+bool fpga_external_reset_applied(void) {
+
+	if (fpgastate.pin_reset_dir == GPIO_IN) {
+
+		BoardConfigPtrConst bc = boardconfig_get();
+		if (bc->fpga_cram.reset_inverted) {
+			return gpio_get(bc->fpga_cram.pin_reset) == 0;
+		} else {
+			return gpio_get(bc->fpga_cram.pin_reset) == 1;
+		}
+	}
+
+	return false;
+}
 
 bool fpga_is_in_reset(void) {
-	return fpgastate.in_reset;
+
+	if (fpgastate.in_reset == true) {
+		return true;
+	}
+
+	if (fpga_external_reset_applied()){
+		return true;
+	}
+
+	return false;
 }
 void fpga_reset(bool set_to) {
 	BoardConfigPtrConst bc = boardconfig_get();
 	if (set_to) {
 		FPGA_DEBUG_LN("Resetting FPGA");
+		fpgastate.reset_switch_enabled = false;
 
 	    fpgastate.in_reset = true;
+	    fpgastate.is_programmed = false;
 		if (bc->system.fpga_reset_external_trigger) {
 			fpga_reset_monitor_enable(bc, false); // disable IRQ
-	        gpio_set_dir(bc->fpga_cram.pin_reset, GPIO_OUT);
+			fpga_set_reset_pin_dir(GPIO_OUT);
 		}
 	    gpio_put(bc->fpga_cram.pin_reset, !bc->fpga_cram.reset_inverted);
 	} else {
@@ -263,7 +305,22 @@ bool fpga_is_init(void) {
 	return fpgastate.is_init;
 }
 bool fpga_is_programmed(void) {
+
+#ifdef FPGA_PROG_DONE_LEVEL
+	BoardConfigPtrConst bc = boardconfig_get();
+	if (fpgastate.is_programmed == false) {
+			return false;
+	}
+
+	if (gpio_get(bc->fpga_cram.pin_done) == FPGA_PROG_DONE_LEVEL) {
+		return true;
+	}
+
+	return false;
+
+#else
 	return fpgastate.is_programmed;
+#endif
 }
 
 void fpga_set_programmed(bool set_to) {
@@ -277,9 +334,9 @@ void fpga_enter_programming_mode(void) {
 
 	fpga_spi_transaction_begin(); // cs goes low
 	FPGA_DEBUG_LN("doing progmode reset ");
-	sleep_ms(2);
+	sleep_ms(8);
 	fpga_reset(false); // we disable reset, fpga acts as slave
-	sleep_ms(4); // minimum of 1200us here!
+	sleep_ms(6); // minimum of 1200us here!
 	// send 8 dummy clocks
 	gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted); // release
 

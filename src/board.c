@@ -67,8 +67,8 @@ static uint32_t uf2_start_address = 0;
 
 
 void board_reboot(void) {
-	watchdog_enable(100, 1);
-	while(1) {}
+	watchdog_enable(250, 1);
+	// while(1) {}
 
 }
 

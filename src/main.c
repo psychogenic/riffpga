@@ -40,23 +40,25 @@
 #include "io_inputs.h"
 
 
+#include "driver_state.h"
+
+DriverState MainDriverState;
 
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
 
-
+#define BASE_FPGA_PROG_DELAY	500
 #define SLOT_BLINKTIME_ON_MS 	5
 #define SLOT_BLINKTIME_OFF_MS 	300
+#define FPGA_UNPROGRAMMED_BLINKTIME_MS	250
 enum {
   BLINK_NOT_MOUNTED = 750,
   BLINK_MOUNTED = 2500,
   BLINK_SUSPENDED = 4000,
 };
 
-static uint32_t blink_interval_ms = BLINK_NOT_MOUNTED;
 
-static bool have_programmed = false;
 
 void led_blinking_task(void);
 void cdc_task(void);
@@ -68,47 +70,81 @@ void run_tasks(void) {
 	  led_blinking_task();
 
 }
+
+
+void setup(void) {
+
+	  board_init();
+	  board_flash_init();
+	  uf2_init();
+
+
+	  boardconfig_init();
+	  if (boardconfig_version_mismatch() == true) {
+		  boardconfig_factoryreset();
+	  }
+
+
+	  BoardConfigPtrConst bconf = boardconfig_get();
+	  boardconfig_set_systemclock_hz(bconf->system.clock_freq_hz);
+
+	  // init device stack on configured roothub port
+	  	tud_init(BOARD_TUD_RHPORT);
+	  	if (board_init_after_tusb) {
+	  		board_init_after_tusb();
+	  	}
+	  fpga_init();
+	  fpga_reset(true);
+	  io_inputs_init();
+	  io_switches_init();
+
+	  if (io_manualclock_switch_state()) {
+		  CDCWRITESTRING("Requested MANUAL clocking\r\n");
+		  boardconfig_set_autoclock_hz(0);
+		  gpio_init(bconf->clocking[0].pin);
+		  gpio_set_dir(bconf->clocking[0].pin, GPIO_OUT);
+		  MainDriverState.clocking_manually = true;
+	  } else {
+		  DEBUG_LN("no manual clocking\r\n");
+		  if (bconf->clocking[0].enabled && bconf->clocking[0].freq_hz > 10) {
+			  boardconfig_set_autoclock_hz(bconf->clocking[0].freq_hz);
+		  }
+	  }
+	  CDCWRITEFLUSH();
+}
 /*------------- MAIN -------------*/
 int main(void) {
-  board_init();
-  board_flash_init();
-  uf2_init();
-
-
-  boardconfig_init();
-  if (boardconfig_version_mismatch() == true) {
-	  boardconfig_factoryreset();
-  }
-
-
-  BoardConfigPtrConst bconf = boardconfig_get();
-  boardconfig_set_systemclock_hz(bconf->system.clock_freq_hz);
-
-  // init device stack on configured roothub port
-  	tud_init(BOARD_TUD_RHPORT);
-  	if (board_init_after_tusb) {
-  		board_init_after_tusb();
-  	}
-  fpga_init();
-  fpga_reset(true);
-  io_inputs_init();
-
-  if (bconf->clocking[0].enabled && bconf->clocking[0].freq_hz > 10) {
-	  boardconfig_set_autoclock_hz(bconf->clocking[0].freq_hz);
-  }
-
+  setup();
+  uint8_t attempts = 0;
   while (1) {
-	  if (fpga_external_reset()) {
-		  if (have_programmed) {
+	  run_tasks();
+	  if (MainDriverState.clocking_manually) {
+		  if (io_manualclock_switch_interrupted()) {
+			  if (! io_manualclock_switch_state()) {
+				  MainDriverState.immediate_led_blink = true;
+				  CDCWRITESTRING("\r\nCLOCK (manual)\r\n");
+				  io_manualclock_switch_interrupt_clear();
+				  CDCWRITEFLUSH();
+				  clock_once(boardconfig_autoclocking(0));
+			  }
+		  }
+	  }
+	  if (fpga_external_reset() && !fpga_external_reset_applied()) {
+		  if (MainDriverState.have_programmed) {
 			  CDCWRITESTRING("\r\nExternal RST detected\r\n");
 		  }
-		  have_programmed = false;
+		  MainDriverState.have_programmed = false;
 		  fpga_external_reset_handled();
+		  attempts = 0;
+		  CDCWRITEFLUSH();
+		  continue;
 	  }
+
 	  run_tasks();
-	  if (! have_programmed ) {
-		  if (board_millis() > (50 + DEBUG_START_PROGRAM_DELAY_MS)) {
-			  have_programmed = true;
+	  if (! MainDriverState.have_programmed ) {
+		  if ((fpga_external_reset_applied() == false)
+				  && board_millis() > (BASE_FPGA_PROG_DELAY + DEBUG_START_PROGRAM_DELAY_MS) ) {
+			  MainDriverState.have_programmed = true;
 
 			  if (! bs_have_checked_for_marker()) {
 				  DEBUG("Checking for bitstream...");
@@ -128,6 +164,16 @@ int main(void) {
 			  	  DEBUG_LN(" bytes. Program...");
 			  	  bs_program_fpga(run_tasks);
 			  	  DEBUG_LN("Done.");
+			  	  sleep_ms(100);
+			  	  run_tasks();
+			  	  if (fpga_is_programmed()) {
+			  		  attempts = 0;
+			  	  } else {
+			  		  attempts++;
+			  		  if (attempts < 3) {
+			  			MainDriverState.have_programmed = false;
+			  		  }
+			  	  }
 			  } else {
 				  DEBUG_LN("No bitstream found");
 			  }
@@ -143,12 +189,12 @@ int main(void) {
 
 // Invoked when device is mounted
 void tud_mount_cb(void) {
-  blink_interval_ms = BLINK_MOUNTED;
+  MainDriverState.blink_interval_ms = BLINK_MOUNTED;
 }
 
 // Invoked when device is unmounted
 void tud_umount_cb(void) {
-  blink_interval_ms = BLINK_NOT_MOUNTED;
+  MainDriverState.blink_interval_ms = BLINK_NOT_MOUNTED;
 }
 
 // Invoked when usb bus is suspended
@@ -156,12 +202,12 @@ void tud_umount_cb(void) {
 // Within 7ms, device must draw an average of current less than 2.5 mA from bus
 void tud_suspend_cb(bool remote_wakeup_en) {
   (void) remote_wakeup_en;
-  blink_interval_ms = BLINK_SUSPENDED;
+  MainDriverState.blink_interval_ms = BLINK_SUSPENDED;
 }
 
 // Invoked when usb bus is resumed
 void tud_resume_cb(void) {
-  blink_interval_ms = tud_mounted() ? BLINK_MOUNTED : BLINK_NOT_MOUNTED;
+  MainDriverState.blink_interval_ms = tud_mounted() ? BLINK_MOUNTED : BLINK_NOT_MOUNTED;
 }
 
 //--------------------------------------------------------------------+
@@ -177,6 +223,8 @@ void tud_and_blink_tasks(void) {
 
 void cdc_task(void) {
 	static uint8_t breakout_sequence_idx = 0;
+	#define BRIDGE_RX_BUFLEN	40
+	uint8_t from_bridge_rx_chars[40];
 
 	BoardConfigPtrConst bconf = boardconfig_get();
 	if (! bconf->uart_bridge.enabled ) {
@@ -185,9 +233,13 @@ void cdc_task(void) {
 	}
 
 	// UART bridge is enabled
+	uint8_t uart_tx_count = 0;
 	while (tud_cdc_available()) {
-		char c = tud_cdc_read_char();
+		int32_t c = tud_cdc_read_char();
 		bool tx_char = true;
+		if (c < 0) {
+			continue;
+		}
 		if (c == bconf->uart_bridge.breakout_sequence[breakout_sequence_idx]) {
 			breakout_sequence_idx++;
 			if (! bconf->uart_bridge.breakout_sequence[breakout_sequence_idx]) {
@@ -195,6 +247,7 @@ void cdc_task(void) {
 				uart_bridge_disable();
 				boardconfig_uartbridge_disable();
 				CDCWRITESTRING("\r\nUART Bridge teardown\r\n");
+				CDCWRITEFLUSH();
 				tx_char = false;
 			}
 		} else {
@@ -203,13 +256,36 @@ void cdc_task(void) {
 
 		if (tx_char == true) {
 			uart_bridge_putc_raw(c);
+			uart_tx_count++;
 		}
 	}
+	if (uart_tx_count) {
+		uart_bridge_tx_flush();
+	}
+
+	uint8_t uart_rx_count = 0;
 
 	while (uart_bridge_is_readable()) {
-		char inc = uart_bridge_getc();
-		tud_cdc_write(&inc, 1);
+		from_bridge_rx_chars[uart_rx_count] = uart_bridge_getc();
+		uart_rx_count += 1;
 
+		if (uart_rx_count >= (BRIDGE_RX_BUFLEN - 1)) {
+			if (tud_cdc_write_available() < uart_rx_count) {
+				tud_cdc_write_flush();
+			}
+			tud_cdc_write(from_bridge_rx_chars, uart_rx_count);
+			uart_rx_count = 0;
+			return ; // for later
+		}
+
+
+
+	}
+
+	if (uart_rx_count) {
+		// write any pending bits
+		tud_cdc_write(from_bridge_rx_chars, uart_rx_count);
+		tud_cdc_write_flush();
 	}
 
 
@@ -249,23 +325,30 @@ void led_blinking_task(void) {
 
   // Blink every interval ms
   uint32_t tnow = board_millis();
-  if ( next_blink_ms > tnow) return; // not enough time
+  if (MainDriverState.immediate_led_blink) {
+	  MainDriverState.immediate_led_blink = false;
+  } else if (next_blink_ms > tnow) return; // not enough time
 
-  if (led_blink_count < (2* (1 + boardconfig_selected_bitstream_slot()) )) {
-
-	  if (led_blink_count == 0) {
-		  led_state = 1;
-	  }
-	  led_blink_count++;
-	  if (led_state == 0) {
-		  next_blink_ms = SLOT_BLINKTIME_OFF_MS + tnow;
-	  } else {
-		  next_blink_ms = SLOT_BLINKTIME_ON_MS + tnow;
-	  }
+  if (fpga_is_programmed() == false) {
+	  next_blink_ms = tnow + FPGA_UNPROGRAMMED_BLINKTIME_MS;
   } else {
-	  led_blink_count = 0;
-	  led_state = 0;
-	  next_blink_ms = blink_interval_ms + tnow;
+
+	  if (led_blink_count < (2* (1 + boardconfig_selected_bitstream_slot()) )) {
+
+		  if (led_blink_count == 0) {
+			  led_state = 1;
+		  }
+		  led_blink_count++;
+		  if (led_state == 0) {
+			  next_blink_ms = SLOT_BLINKTIME_OFF_MS + tnow;
+		  } else {
+			  next_blink_ms = SLOT_BLINKTIME_ON_MS + tnow;
+		  }
+	  } else {
+		  led_blink_count = 0;
+		  led_state = 0;
+		  next_blink_ms = MainDriverState.blink_interval_ms + tnow;
+	  }
   }
 
   board_led_write(led_state);

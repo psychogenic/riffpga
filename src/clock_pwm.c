@@ -49,6 +49,23 @@ uint32_t get_slice_hz_ceil(uint32_t div16) {
     return get_slice_hz(div16 - 1, div16);
 }
 
+void clock_once(FPGA_PWM * pwmconf) {
+	if (pwmconf->enabled) {
+		clock_pwm_disable(pwmconf);
+		gpio_set_function(pwmconf->pin, GPIO_FUNC_NULL);
+		gpio_set_dir(pwmconf->pin, GPIO_OUT);
+
+		gpio_put(pwmconf->pin, 0);
+
+
+	}
+	gpio_put(pwmconf->pin, 1);
+	sleep_us(50);
+	gpio_put(pwmconf->pin, 0);
+	sleep_us(50);
+
+
+}
 bool clock_pwm_enable(FPGA_PWM * pwmconf) {
 
     uint slice = pwm_gpio_to_slice_num(pwmconf->pin);

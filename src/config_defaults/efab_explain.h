@@ -50,6 +50,7 @@
  * and this may be monitored on PIN_FPGA_RESET
  */
 #define FPGA_RESET_EXTERNALLY_TRIGGERED		1
+#define FPGA_PROG_DONE_LEVEL	1 /* 1==HIGH means program success */
 
 
 #define AUTOCLOCK1_DEFAULT_FREQ		10000000UL
@@ -106,7 +107,7 @@
 #define USER_SWITCH_IDX_USR2		3
 
 #define USER_SWITCH_RESET_PIN		15
-#define USER_SWITCH_RESET_FUNCTION	1 /* 1 == Reset */
+#define USER_SWITCH_RESET_FUNCTION	0 /* 1 == Reset, 0 == Not set */
 #define USER_SWITCH_RESET_INVERT	1
 #define USER_SWITCH_RESET_PULL		0
 #define USER_SWITCH_RESET_EDGE		GPIO_IRQ_EDGE_FALL

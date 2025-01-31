@@ -22,7 +22,7 @@
 
 #include "cdc_interface.h"
 
-#define DEBUG_OUTPUT_ENABLED
+// #define DEBUG_OUTPUT_ENABLED
 
 // define FORCE_DEBUG_BUF(b, len) cdc_write(b, len)
 #ifdef DEBUG_OUTPUT_ENABLED

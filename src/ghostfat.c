@@ -136,20 +136,32 @@ STATIC_ASSERT(FAT_ENTRIES_PER_SECTOR                       ==       256); // FAT
 #define UF2_SECTOR_COUNT                (_flash_size / UF2_FIRMWARE_BYTES_PER_SECTOR)
 #define UF2_BYTE_COUNT                  (UF2_SECTOR_COUNT * BPB_SECTOR_SIZE) // always a multiple of sector size, per UF2 spec
 
-// define GF_DEBUG_ENABLE
-#ifdef GF_DEBUG_ENABLE
+
+
+// define UF2_WRITE_DEBUG_NOT_UF2_DUMP
+
+#define GF_DEBUG_ENABLE 0
+#if GF_DEBUG_ENABLE
 #define GF_DEBUG_ENDLN()	DEBUG_ENDLN()
 #define GF_DEBUG_BUF(b, len) DEBUG_BUF(b, len)
-#define GF_DEBUG(s) DEBUG(s)
-#define GF_DEBUG_LN(s)	DEBUG_LN(s)
+#define GF_DEBUG(s) 		DEBUG(s)
+#define GF_DEBUG_LN(s)		DEBUG_LN(s)
 
-#define GF_DEBUG_U32(v) DEBUG_U32(v)
-#define GF_DEBUG_U32_LN(v) DEBUG_U32_LN(v)
-#define GF_DEBUG_U16(v) DEBUG_U16(v)
+#define GF_DEBUG_U32(v) 	DEBUG_U32(v)
+#define GF_DEBUG_U32_LN(v) 	DEBUG_U32_LN(v)
+#define GF_DEBUG_U16(v) 	DEBUG_U16(v)
 
-#define GF_DEBUG_U16_LN(v) DEBUG_U16_LN(v)
-#define GF_DEBUG_U8(v) DEBUG_U8(v)
-#define GF_DEBUG_U8_LN(v) DEBUG_U8_LN(v)
+#define GF_DEBUG_U16_LN(v) 	DEBUG_U16_LN(v)
+#define GF_DEBUG_U8(v) 		DEBUG_U8(v)
+#define GF_DEBUG_U8_LN(v) 	DEBUG_U8_LN(v)
+
+#if GF_DEBUG_ENABLE > 1
+#define GF_DEBUG_VERBOSE(s)			GF_DEBUG(s)
+#define GF_DEBUG_VERBOSE_LN(s)		GF_DEBUG_LN(s)
+#else
+#define GF_DEBUG_VERBOSE(s)
+#define GF_DEBUG_VERBOSE_LN(s)
+#endif
 #else
 
 #define GF_DEBUG_ENDLN()
@@ -164,6 +176,8 @@ STATIC_ASSERT(FAT_ENTRIES_PER_SECTOR                       ==       256); // FAT
 #define GF_DEBUG_U16_LN(v)
 #define GF_DEBUG_U8(v)
 #define GF_DEBUG_U8_LN(v)
+#define GF_DEBUG_VERBOSE(s)
+#define GF_DEBUG_VERBOSE_LN(s)
 #endif
 
 
@@ -252,6 +266,8 @@ STATIC_ASSERT( CLUSTER_COUNT >= 0x1015 && CLUSTER_COUNT < 0xFFD5 );
 //
 //--------------------------------------------------------------------+
 
+static Bitstream_MetaInfo bs_write_metainfo = {0};
+
 static FAT_BootBlock TINYUF2_CONST BootBlock = {
     .JumpInstruction      = {0xeb, 0x3c, 0x90},
     .OEMInfo              = "UF2 UF2 ",
@@ -277,7 +293,15 @@ static FAT_BootBlock TINYUF2_CONST BootBlock = {
 //
 //--------------------------------------------------------------------+
 
-static inline bool is_uf2_block (UF2_Block const *bl, BoardConfigPtrConst bc) {
+static inline bool is_uf2_binmeta_block(UF2_Block const *bl, BoardConfigPtrConst bc) {
+	return ( (bl->magicStart0 == UF2_MAGIC_START0) &&
+	         (bl->magicStart1 == bc->bin_download.magic_start + 0x42) &&
+	         (bl->magicEnd == bc->bin_download.magic_end));
+
+}
+
+
+static inline bool is_uf2_bin_block (UF2_Block const *bl, BoardConfigPtrConst bc) {
 #ifdef GF_DEBUG_OUTPUT_ENABLED
 	if (bl->magicStart0 != UF2_MAGIC_START0) {
 		GF_DEBUG("no magic start0");
@@ -560,8 +584,10 @@ void uf2_read_block (uint32_t block_no, uint8_t *data) {
       uint32_t start_offset = boardconfig_bin_startoffset();
       uint32_t addr = start_offset + (fileRelativeSector * UF2_FIRMWARE_BYTES_PER_SECTOR);
 
-      GF_DEBUG("read UF2 @");
+      GF_DEBUG_VERBOSE("read UF2 @");
+#if GF_DEBUG_ENABLE > 1
       GF_DEBUG_U32_LN(addr);
+#endif
       if ( (addr - start_offset) < (BOARD_FLASH_ADDR_ZERO + _flash_size) ) {
         UF2_Block *bl = (void*) data;
         bl->magicStart0 = UF2_MAGIC_START0;
@@ -583,6 +609,10 @@ void uf2_read_block (uint32_t block_no, uint8_t *data) {
 }
 
 static void uf2_write_complete(void) {
+	GF_DEBUG_LN("UF2 write complete!");
+	sleep_ms(20);
+	CDCWRITEFLUSH();
+
 	board_flash_flush();
 	board_reboot();
 }
@@ -606,6 +636,50 @@ static void dump_uf2_block(UF2_Block * bl) {
 #else
 #define DUMP_UF2BLOCK(b)
 #endif
+
+static void debug_dump_datablock(uint8_t *data) {
+
+	  char ascii_contents[20] = {0};
+	  ascii_contents[16] = '\r';
+	  ascii_contents[17] = '\n';
+	  bool flushed = true;
+	  for (uint16_t i=0; i<BPB_SECTOR_SIZE; i++) {
+
+		  if (i % 16 == 0) {
+
+			  CDCWRITESTRING("  ");
+			  if (i > 0) {
+				  CDCWRITESTRING(ascii_contents);
+			  } else {
+				  CDCWRITESTRING("\r\n");
+			  }
+			  CDCWRITEFLUSH();
+			  // reset
+			  for (uint8_t j=0; j<16; j++) {
+				  ascii_contents[j] = '.';
+			  }
+			  flushed = true;
+		  } else {
+			  flushed = false;
+		  }
+		  cdc_write_u8_leadingzeros(data[i]);
+		  cdc_write_char(' ');
+		  if (data[i]>=0x20 && data[i] <=0x7e) {
+			  ascii_contents[i%16] = data[i];
+		  } else {
+			  ascii_contents[i%16] = '.';
+		  }
+	  }
+
+	  if (flushed == false) {
+		  CDCWRITESTRING(ascii_contents);
+	  }
+}
+
+
+
+
+
 /**
  * Write an uf2 block wrapped by 512 sector.
  * @return number of bytes processed, only 3 following values
@@ -613,6 +687,8 @@ static void dump_uf2_block(UF2_Block * bl) {
  * 512 : write is successful (BPB_SECTOR_SIZE == 512)
  *   0 : is busy with flashing, tinyusb stack will call write_block again with the same parameters later on
  */
+
+
 int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
   (void) block_no;
   static bool write_is_complete = false;
@@ -620,13 +696,47 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
   UF2_Block *bl = (void*) data;
   DUMP_UF2BLOCK(bl);
 
-  if ( !is_uf2_block(bl, bc) ) {
-	  GF_DEBUG_LN("Not a UF2 block");
+
+
+
+  if ( !is_uf2_bin_block(bl, bc) ) {
+
+	  if (is_uf2_binmeta_block(bl, bc)) {
+#ifdef UF2_WRITE_DEBUG_NOT_UF2_DUMP
+		  DEBUG_LN("Got our meta-data");
+		  debug_dump_datablock(data);
+#endif
+		  memcpy(&bs_write_metainfo, bl->data, sizeof(bs_write_metainfo));
+
+		  state->numWritten++;
+	  }
+
+
+
+#ifdef UF2_WRITE_DEBUG_NOT_UF2_DUMP
+	  DEBUG_LN("\r\nNot a UF2:\r\n");
+	  if ( block_no == 0 ) {
+	  	  DEBUG_LN("Write to BLOCK 0\r\n");
+	     } else if ( block_no < FS_START_ROOTDIR_SECTOR ) {
+	       // Request was for a FAT table sector
+	  		  DEBUG("Write to FAT table: ");
+	  		  DEBUG_U32_LN(block_no);
+	     } else if (block_no < FS_START_CLUSTERS_SECTOR) {
+	  	   DEBUG("Write to root dir sector: ");
+	  		  DEBUG_U32_LN(block_no);
+	     } else {
+	    	 DEBUG("block no: ");
+	  		  DEBUG_U32_LN(block_no);
+	     }
+	  debug_dump_datablock(data);
+#endif
+
+
 	  return -1;
   }
 
-  GF_DEBUG("NumBlock in U: ");
-  GF_DEBUG_U32_LN(bl->numBlocks);
+  // GF_DEBUG("NumBlock in U: ");
+  // GF_DEBUG_U32_LN(bl->numBlocks);
 
   if (bl->familyID == bc->bin_download.family_id) {
     // generic family ID
@@ -660,12 +770,26 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
       if ( !(state->writtenMask[pos] & mask) ) {
         state->writtenMask[pos] |= mask;
         state->numWritten++;
+        GF_DEBUG("Wrote ");
+        GF_DEBUG_U32(state->numWritten);
+        GF_DEBUG("/");
+        GF_DEBUG_U32_LN(state->numBlocks);
+        CDCWRITEFLUSH();
+      } else {
+    	  GF_DEBUG("Dupe @ ");
+          GF_DEBUG_U32_LN(pos);
       }
 
       // flush last blocks
       // TODO numWritten can be smaller than numBlocks if return early
       if ( state->numWritten >= state->numBlocks && write_is_complete == false) {
 
+		  GF_DEBUG("UF2 W done ");
+		  if (bs_write_metainfo.bssize) {
+			  GF_DEBUG_LN(bs_write_metainfo.name);
+		  } else {
+			  GF_DEBUG_LN(" no name.");
+		  }
     	  write_is_complete = true;
     	  // grab this before playing with flash any further
     	  uint32_t bs_start_addy = board_first_written_address();
@@ -678,11 +802,17 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
     	  uint8_t slotidx = 0;
     	  bool foundslot = false;
     	  for (uint8_t i=0; i<POSITION_SLOTS_NUM; i++) {
-    		  cdc_write_u32_ln(FLASH_STORAGE_STARTADDRESS(i));
+    		  GF_DEBUG("CHKSLT ");
+    		  GF_DEBUG_U32(FLASH_STORAGE_STARTADDRESS(i));
+    		  GF_DEBUG(" - ");
+    		  GF_DEBUG_U32_LN(FLASH_STORAGE_STARTADDRESS(i+1));
+	    	  CDCWRITEFLUSH();
     		  if (
     				  (bl->targetAddr >= FLASH_STORAGE_STARTADDRESS(i))
 					  &&
 					  (bl->targetAddr < FLASH_STORAGE_STARTADDRESS(i+1))) {
+    			  GF_DEBUG("Targ in slot ");
+    			  GF_DEBUG_U8_LN(slotidx + 1);
     			  // CDCWRITESTRING("Target in slot ");
         		  // cdc_write_dec_u8_ln(slotidx + 1);
         		  slotidx = i;
@@ -697,13 +827,16 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 				  boardconfig_set_bitstream_slot(slotidx);
 				  boardconfig_write();
     		  }
-        	  bs_write_marker_to_slot(slotidx, state->numBlocks, bs_size_written, bs_start_addy);
+        	  bs_write_marker_to_slot(slotidx, state->numBlocks, bs_size_written, bs_start_addy,
+        			  bs_write_metainfo.namelen, bs_write_metainfo.name);
     	  } else {
-    		  bs_write_marker(state->numBlocks, bs_size_written, bs_start_addy);
+    		  bs_write_marker(state->numBlocks, bs_size_written, bs_start_addy,
+    				  bs_write_metainfo.namelen, bs_write_metainfo.name);
     	  }
 
     	  CDCWRITEFLUSH();
 
+    	  sleep_ms(150);
     	  uf2_write_complete();
       }
     }

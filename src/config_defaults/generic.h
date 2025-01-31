@@ -52,6 +52,7 @@
  * and this may be monitored on PIN_FPGA_RESET
  */
 #define FPGA_RESET_EXTERNALLY_TRIGGERED		0
+#define FPGA_PROG_DONE_LEVEL	1 /* 1==HIGH means program success */
 
 
 

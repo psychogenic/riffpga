@@ -36,6 +36,8 @@ void uart_bridge_putc(char c);
 void uart_bridge_puts(const char *s);
 char uart_bridge_getc();
 bool uart_bridge_is_writable();
+void uart_bridge_tx_flush();
+
 
 
 

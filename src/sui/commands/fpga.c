@@ -24,8 +24,22 @@
 #include "cdc_interface.h"
 #include "board_config.h"
 #include "../../fpga.h"
+#include "../../board.h"
 #include "bitstream.h"
 
+
+void cmd_fpga_erase(SUIInteractionFunctions * funcs) {
+
+	CDCWRITESTRING("\r\n Erasing FPGA bitstreams\r\n");
+	for (uint8_t i=0; i<POSITION_SLOTS_NUM; i++) {
+		bs_erase_slot(i);
+	}
+
+	board_flash_pages_erased_clear();
+	bs_init();
+	fpga_reset(true);
+
+}
 
 void cmd_fpga_reset(SUIInteractionFunctions * funcs) {
 	CDCWRITESTRING("\r\n Toggle FPGA reset, now: ");
@@ -50,11 +64,15 @@ void cmd_fpga_prog(SUIInteractionFunctions * funcs) {
 	}
 
 	CDCWRITESTRING("cdone is: ");
+#ifdef FPGA_PROG_DONE_LEVEL
 	if (gpio_get(bc->fpga_cram.pin_done)) {
 		CDCWRITESTRING("HIGH\r\n");
 	} else {
 		CDCWRITESTRING("LOW\r\n");
 	}
+#else
+	CDCWRITESTRING("n/a\r\n");
+#endif
 
 
 }

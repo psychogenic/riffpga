@@ -8,9 +8,13 @@ Created on Dec 17, 2024
 '''
 
 
+import os.path
 import argparse
+import struct
 from uf2utils.file import UF2File
 from uf2utils.family import Family
+from uf2utils.block import Header, DataBlock
+from uf2utils.constants import Flags
 import random
 
 class UF2Settings:
@@ -53,7 +57,8 @@ TargetOptions = {
 
 base_bitstream_storage_page = 544
 page_blocks = 4 # 4 k per page
-reserved_pages_for_bitstream_slot = int(512/page_blocks)
+reserved_pages_for_bitstream_slot = int((512)/page_blocks)
+#reserved_pages_for_bitstream_slot = int(512/page_blocks)
 max_pages_for_bitstream = int(128/page_blocks)
 base_page = int(544/page_blocks)
 
@@ -71,6 +76,9 @@ def get_args():
     parser.add_argument('--slot', required=False, type=int, 
                         default=1,
                         help='Slot (1-3) [1]')
+    parser.add_argument('--name', required=False, type=str,
+                        default='',
+                        help='Pretty name for bitstream')
     parser.add_argument('infile',
                         help='input bitstream')
     parser.add_argument('outfile', help='output UF2 file')
@@ -96,6 +104,32 @@ def get_new_uf2(settings:UF2Settings):
     return uf2
 
 
+def get_metadata_block(settings:UF2Settings, flash_address:int, filename:str, bitstreamSize:int, bitstreamName:str=None):
+    if bitstreamName is None or not len(bitstreamName):
+        extsplit = os.path.splitext(filename)
+        if extsplit and len(extsplit) > 1:
+            bitstreamName = os.path.basename(filename).replace(extsplit[1], '')
+        else:
+            bitstreamName = os.path.basename(filename)
+
+    bsnamelenmax = 22
+    bsnamelen = len(bitstreamName)
+    # bsformat = 'c'*bsnamelenmax
+    if bsnamelen > bsnamelenmax:
+        bitstreamName = bitstreamName[:bsnamelenmax]
+        bsnamelen = bsnamelenmax
+
+    target = bytearray(4+1)
+
+    metaheader = 'BSMETA01'
+    struct.pack_into(f'<IB', target, 0, bitstreamSize, len(bitstreamName))
+    payload = bytes(metaheader, encoding='ascii') + target + bytes(bitstreamName, encoding='ascii')
+    print(bitstreamName)
+    print(payload)
+    hdr = Header(Flags.FamilyIDPresent | Flags.NotMainFlash, flash_address, len(payload), 0, 1, settings.boardFamily)
+    return DataBlock(payload, hdr, magic_start1=settings.magicStart1+0x42)
+
+
 def main():
     
     args = get_args()
@@ -107,7 +141,7 @@ def main():
     slotidx = args.slot - 1
     
     # stick it somewhere within its slot
-    page = random.randint(0, reserved_pages_for_bitstream_slot-max_pages_for_bitstream)
+    page = random.randint(0, reserved_pages_for_bitstream_slot-(max_pages_for_bitstream + (160/4)))
     page += reserved_pages_for_bitstream_slot * slotidx
     page += base_page
     
@@ -117,6 +151,9 @@ def main():
     payload_bytes = get_payload_contents(args.infile)
     
     start_offset = page*page_blocks*1024
+
+
+    uf2.append_datablock(get_metadata_block(uf2sets, start_offset, args.infile, len(payload_bytes), args.name))
     uf2.append_payload(payload_bytes, 
                        start_offset=start_offset, 
                        block_payload_size=256)

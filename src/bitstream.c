@@ -88,50 +88,117 @@ bool bs_have_checked_for_marker(void) {
 void bs_clear_size_check_flag(void) {
 	bs_marker_state.have_checked = false;
 }
+
+// pass it an array of Bitstream_Slot_Content[POSITION_SLOTS_ALLOWED]
+// returns num found
+uint8_t bs_slot_contents(Bitstream_Slot_Content * contents) {
+	uint8_t num_found = 0;
+	Bitstream_Marker_State markercheck;
+	for (uint8_t i=0; i<POSITION_SLOTS_ALLOWED; i++) {
+		if (! bs_load_marker(i, &markercheck)) {
+
+			contents[i].namelen = 0;
+			contents[i].found = false;
+		} else {
+
+			num_found++;
+			contents[i].found = true;
+			contents[i].namelen = markercheck.namelen;
+			if (markercheck.namelen) {
+				memcpy(contents[i].name, markercheck.name, markercheck.namelen);
+				contents[i].name[markercheck.namelen] = '\0';
+			}
+		}
+	}
+	return num_found;
+}
+
+uint32_t bs_load_marker(uint8_t slot, Bitstream_Marker_State * into) {
+
+	BoardConfigPtrConst bc = boardconfig_get();
+	board_flash_read(boardconfig_bs_marker_address_for(slot), &(into->info),
+					sizeof(into->info));
+
+	into->have_checked = true;
+	into->size = 0;
+	into->uf2_file_size = 0;
+	if (! (into->info.magicStart0
+			== UF2_MAGIC_START0 && into->info.magicStart1 == bc->bs_marker.magic_start
+			&& into->info.familyID == bc->bs_marker.family_id
+			&& into->info.magicEnd == bc->bs_marker.magic_end)) {
+		return 0;
+	}
+
+	BS_DEBUG("Have size info! ");
+	uint8_t idx = 0;
+	memcpy(&(into->size), into->info.data, 4);
+	idx += 4;
+
+	BS_DEBUG_U32(into->size);
+
+	memcpy(&(into->start_address), &(into->info.data[idx]), 4);
+	idx += 4;
+	BS_DEBUG(" @ ");
+	BS_DEBUG_U32_LN(into->start_address);
+
+	into->namelen = into->info.data[idx];
+	idx += 1;
+
+	if (into->namelen) {
+		memcpy(&(into->name), &(into->info.data[idx]), into->namelen);
+		BS_DEBUG_BUF(into->name, into->namelen);
+	}
+
+
+	// store the "file size" we will declare such that
+	// the host can download the entire UF2, basically
+	// 512 bytes per block
+	into->uf2_file_size = into->info.numBlocks * 512;
+
+	return into->size; // bitstream_size;
+
+}
 uint32_t bs_check_for_marker(void)
 {
 	BoardConfigPtrConst bc = boardconfig_get();
+	Bitstream_Marker_State statecheck;
+
 	bs_marker_state.have_checked = true;
 	bs_marker_state.size = 0;
 	bs_marker_state.uf2_file_size = 0;
 
-	board_flash_read(boardconfig_bs_marker_address(), &(bs_marker_state.info),
-			sizeof(bs_marker_state.info));
-	if (bs_marker_state.info.magicStart0
-			== UF2_MAGIC_START0 && bs_marker_state.info.magicStart1 == bc->bs_marker.magic_start
-			&& bs_marker_state.info.familyID == bc->bs_marker.family_id
-			&& bs_marker_state.info.magicEnd == bc->bs_marker.magic_end) {
-		BS_DEBUG("Have size info! ");
-		memcpy(&(bs_marker_state.size), bs_marker_state.info.data, 4);
-		BS_DEBUG_U32(bs_marker_state.size);
-		memcpy(&(bs_marker_state.start_address), &(bs_marker_state.info.data[4]), 4);
-		BS_DEBUG(" @ ");
-		BS_DEBUG_U32_LN(bs_marker_state.start_address);
-
-
-		// store the "file size" we will declare such that
-		// the host can download the entire UF2, basically
-		// 512 bytes per block
-		bs_marker_state.uf2_file_size = bs_marker_state.info.numBlocks * 512;
-
-		return bs_marker_state.size; // bitstream_size;
+	if (bs_load_marker(boardconfig_selected_bitstream_slot(), &statecheck)) {
+		// ok we found it!
+		memcpy(&bs_marker_state, &statecheck, sizeof(Bitstream_Marker_State));
+		return bs_marker_state.size;
 	}
+	// no worky
 	BS_DEBUG_LN("BAD SIZE MARK");
-	BS_DEBUG_U32_LN(bs_marker_state.info.magicStart0);
-	BS_DEBUG_U32_LN(bs_marker_state.info.magicStart1);
-	BS_DEBUG_U32_LN(bs_marker_state.info.magicEnd);
+	BS_DEBUG_U32_LN(statecheck.info.magicStart0);
+	BS_DEBUG_U32_LN(statecheck.info.magicStart1);
+	BS_DEBUG_U32_LN(statecheck.info.magicEnd);
 
 	memset(&bs_marker_state.info, 0, sizeof(bs_marker_state.info));
 	return 0;
 }
 
-void bs_write_marker(uint32_t num_blocks, uint32_t bitstream_size, uint32_t address_start) {
-	bs_write_marker_to_slot(boardconfig_bs_marker_address(), num_blocks, bitstream_size, address_start);
+void bs_write_marker(uint32_t num_blocks, uint32_t bitstream_size, uint32_t address_start,
+		uint8_t name_len,
+		uint8_t * name) {
+	bs_write_marker_to_slot(boardconfig_bs_marker_address(), num_blocks, bitstream_size,
+			address_start,
+			name_len,
+			name);
 
 }
 
 
-void bs_write_marker_to_slot(uint8_t slotidx, uint32_t num_blocks, uint32_t bitstream_size, uint32_t address_start) {
+void bs_write_marker_to_slot(uint8_t slotidx,
+		uint32_t num_blocks,
+		uint32_t bitstream_size,
+		uint32_t address_start,
+		uint8_t name_len,
+		uint8_t * name) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
     bs_marker_state.info.magicStart0 = UF2_MAGIC_START0;
@@ -142,18 +209,41 @@ void bs_write_marker_to_slot(uint8_t slotidx, uint32_t num_blocks, uint32_t bits
     bs_marker_state.info.blockNo = 1;
     bs_marker_state.info.numBlocks = num_blocks;
     uint32_t total_len = bitstream_size;
+
+    uint8_t idx = 0;
     memcpy(bs_marker_state.info.data, &total_len, 4);
-    memcpy(&(bs_marker_state.info.data[4]), &address_start, 4);
+    idx += 4;
+    memcpy(&(bs_marker_state.info.data[idx]), &address_start, 4);
+    idx += 4;
+    memcpy(&(bs_marker_state.info.data[idx]), &name_len, 1);
+    idx += 1;
+    if (name_len) {
+    	memcpy(&(bs_marker_state.info.data[idx]), name, name_len);
+    }
+    idx += name_len;
+
 
     CDCWRITEFLUSH();
     BS_DEBUG("Writing bs mrk len: ");
     BS_DEBUG_U32(total_len);
     BS_DEBUG(" start: ");
-    BS_DEBUG_U32_LN(address_start);
+    BS_DEBUG_U32(address_start);
+    if (name_len) {
+    	BS_DEBUG(" for ");
+    	BS_DEBUG_BUF(name, name_len);
+    }
+    BS_DEBUG("\r\n");
+
     CDCWRITEFLUSH();
 
     board_flash_write(boardconfig_bs_marker_address_for(slotidx), &bs_marker_state.info, sizeof(bs_marker_state.info));
     board_flash_pages_erased_clear();
+}
+
+
+void bs_erase_slot(uint8_t slot) {
+	Bitstream_Marker_State empty = {0};
+	board_flash_write(boardconfig_bs_marker_address_for(slot), &empty.info, sizeof(bs_marker_state.info));
 }
 
 

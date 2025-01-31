@@ -24,6 +24,7 @@
 
 #include "sui/sui_util.h"
 
+void cmd_fpga_erase(SUIInteractionFunctions * funcs);
 void cmd_fpga_reset(SUIInteractionFunctions * funcs);
 void cmd_fpga_prog(SUIInteractionFunctions * funcs) ;
 

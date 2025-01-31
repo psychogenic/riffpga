@@ -25,6 +25,8 @@
 
 #include "board_config.h"
 
+void clock_once(FPGA_PWM * pwmconf);
+
 bool clock_pwm_enable(FPGA_PWM * pwmconf);
 void clock_pwm_disable(FPGA_PWM * pwmconf);
 bool clock_pwm_set_freq(uint32_t freq_hz, FPGA_PWM * pwmconf);

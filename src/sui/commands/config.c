@@ -24,6 +24,7 @@
 #include "bitstream.h"
 #include "sui/commands/dump.h"
 #include "sui/commands/fpga.h"
+#include "../../fpga.h"
 
 void cmd_factory_reset_config(SUIInteractionFunctions * funcs) {
 	CDCWRITESTRING("\r\nConfiguration Factory Reset!\r\n");
@@ -39,6 +40,41 @@ void cmd_save_config(SUIInteractionFunctions * funcs) {
 
 
 void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
+
+	Bitstream_Slot_Content slot_contents[POSITION_SLOTS_ALLOWED];
+	uint8_t slot_programmed[POSITION_SLOTS_ALLOWED] = {0};
+	uint8_t num_found = bs_slot_contents(slot_contents);
+
+
+	CDCWRITESTRING("\r\n");
+	for (uint8_t i=0; i<POSITION_SLOTS_ALLOWED; i++) {
+		CDCWRITESTRING("  * ");
+		cdc_write_dec_u8((i+1));
+		CDCWRITESTRING(": ");
+		if (slot_contents[i].found == true) {
+			if (slot_contents[i].namelen) {
+				cdc_write(slot_contents[i].name, slot_contents[i].namelen);
+				CDCWRITESTRING("\r\n");
+				slot_programmed[i] = 1;
+			} else {
+				CDCWRITESTRING("-unnammed-\r\n");
+			}
+		} else {
+			CDCWRITESTRING("-empty-\r\n");
+
+		}
+		funcs->wait();
+	}
+	CDCWRITEFLUSH();
+	if (! num_found ) {
+		CDCWRITESTRING("\r\nNo programmed slots, aborting.\r\n");
+		return;
+	}
+
+
+
+
+
 	const char * prompt = "\r\nEnter slot to use [1-3]: ";
 	//BoardConfigPtrConst bc = boardconfig_get();
 	const Bitstream_Marker_State * bsmarkorig =  bs_marker_get();
@@ -66,6 +102,10 @@ void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
 
 	uint8_t slotidx = (uint8_t)slot_sel - 1;
 
+	if (! slot_programmed[slotidx]) {
+		CDCWRITESTRING("\r\nHave selected an empty slot.\r\n");
+	}
+
 
 	boardconfig_set_bitstream_slot(slotidx);
 	CDCWRITESTRING("Slot ");
@@ -88,6 +128,7 @@ void cmd_select_active_slot(SUIInteractionFunctions * funcs) {
 		cmd_fpga_prog(funcs);
 	} else {
 		CDCWRITESTRING("No bitstream present in slot.\r\n");
+		fpga_reset(true);
 	}
 
 }

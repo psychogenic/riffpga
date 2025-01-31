@@ -134,3 +134,12 @@ char uart_bridge_getc() {
 	return uart_getc(ubridgestate.uart);
 
 }
+
+
+void uart_bridge_tx_flush() {
+	if (! ubridgestate.is_init ) {
+		return;
+	}
+	uart_tx_wait_blocking(ubridgestate.uart);
+
+}

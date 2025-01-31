@@ -96,6 +96,7 @@ target_sources(${EXENAME} PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/sui/commands/fpga.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/sui/commands/io.c
   ${CMAKE_CURRENT_SOURCE_DIR}/src/sui/commands/uart.c
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/sui/commands/rp_system.c
   
   )
 

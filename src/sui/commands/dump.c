@@ -22,17 +22,12 @@
 
 #include "sui/commands/dump.h"
 #include "sui/commands/io.h"
+#include "board_config_defaults.h"
 
 #include "cdc_interface.h"
 #include "bitstream.h"
 
 static void dump_clocks(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
-
-	CDCWRITESTRING("\r\n Sys Clock req: ");
-	cdc_write_dec_u32_ln(bc->system.clock_freq_hz);
-	CDCWRITESTRING(" Sys Clock act: ");
-	cdc_write_dec_u32_ln(clock_get_hz(clk_sys));
-	CDCWRITEFLUSH();
 
 
 	CDCWRITESTRING(" Auto-clocking: ");
@@ -42,19 +37,38 @@ static void dump_clocks(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs)
 		CDCWRITESTRING("DISABLED\r\n");
 	}
 
+
 	CDCWRITEFLUSH();
-	CDCWRITESTRING("\tfreq: ");
-	cdc_write_dec_u32_ln(bc->clocking[0].freq_hz);
 	CDCWRITESTRING("\tpin: ");
-	cdc_write_dec_u32_ln(bc->clocking[0].pin);
+	cdc_write_dec_u32(bc->clocking[0].pin);
 	CDCWRITEFLUSH();
+	CDCWRITESTRING(", freq: ");
+	cdc_write_dec_u32_ln(bc->clocking[0].freq_hz);
+
+	uint32_t sysclkhz = clock_get_hz(clk_sys);
+	if (sysclkhz != bc->system.clock_freq_hz) {
+		CDCWRITESTRING(" Sys Clock requested ");
+		cdc_write_dec_u32(bc->system.clock_freq_hz);
+		CDCWRITESTRING(", actual: ");
+	} else {
+		CDCWRITESTRING(" Sys Clock: ");
+	}
+
+	cdc_write_dec_u32_ln(sysclkhz);
+	CDCWRITEFLUSH();
+
+
 
 }
 static void dump_cram_conf(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
-	CDCWRITESTRING(" CRAM pins: \r\n\tRESET:\t");
-	cdc_write_dec_u8_ln(bc->fpga_cram.pin_reset);
-	CDCWRITESTRING("\tCDONE:\t");
+	CDCWRITESTRING(" FPGA/CRAM pins: \r\n\tRESET: ");
+	cdc_write_dec_u8(bc->fpga_cram.pin_reset);
+	CDCWRITESTRING(", CDONE: ");
+#ifdef FPGA_PROG_DONE_LEVEL
 	cdc_write_dec_u8_ln(bc->fpga_cram.pin_done);
+#else
+	CDCWRITESTRING("n/a\r\n");
+#endif
 	CDCWRITESTRING("\tSPI CS: ");
 	cdc_write_dec_u8(bc->fpga_cram.spi.pin_cs);
 	CDCWRITEFLUSH();
@@ -147,14 +161,25 @@ static void dump_fpga_resetprog_state(BoardConfigPtrConst bc, SUIInteractionFunc
 			CDCWRITESTRING(" FPGA enabled (not in reset), ");
 		}
 	}
+	funcs->wait();
 
 	CDCWRITESTRING("cdone is: ");
+#ifdef FPGA_PROG_DONE_LEVEL
 	if (gpio_get(bc->fpga_cram.pin_done)) {
-		CDCWRITESTRING("HIGH\r\n");
+		CDCWRITESTRING("HIGH, ");
 	} else {
-		CDCWRITESTRING("LOW\r\n");
+		CDCWRITESTRING("LOW, ");
 	}
+#else
+	CDCWRITESTRING("n/a, ");
+#endif
 	CDCWRITEFLUSH();
+
+	if (bc->clocking[0].enabled) {
+		CDCWRITESTRING("AUTOCLOCK ON.\r\n");
+	} else {
+		CDCWRITESTRING("autoclock OFF.\r\n");
+	}
 }
 static void dump_gp_inputs(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
 
@@ -173,9 +198,30 @@ static void dump_gp_inputs(BoardConfigPtrConst bc, SUIInteractionFunctions * fun
 }
 static void dump_bitstream_info(BoardConfigPtrConst bc, SUIInteractionFunctions * funcs) {
 
+	Bitstream_Slot_Content slot_contents[POSITION_SLOTS_ALLOWED];
 	const Bitstream_Marker_State * bsmark =  bs_marker_get();
 
-	CDCWRITESTRING(" Using bitstream slot ");
+	uint8_t num_found = bs_slot_contents(slot_contents);
+	CDCWRITESTRING(" Slot Contents\r\n");
+	for (uint8_t i=0; i<POSITION_SLOTS_ALLOWED; i++) {
+		CDCWRITESTRING("  ");
+		cdc_write_dec_u8((i+1));
+		CDCWRITECHAR(':');
+		if (slot_contents[i].found == true) {
+			if (slot_contents[i].namelen) {
+				cdc_write(slot_contents[i].name, slot_contents[i].namelen);
+			} else {
+				CDCWRITESTRING("unnamed");
+			}
+		} else {
+			CDCWRITESTRING("empty");
+		}
+		funcs->wait();
+		CDCWRITEFLUSH();
+	}
+
+
+	CDCWRITESTRING("\r\n Using bitstream slot ");
 	cdc_write_dec_u8(1 + boardconfig_selected_bitstream_slot());
 	if (bsmark->size) {
 		CDCWRITESTRING(", have config of size ");
@@ -190,7 +236,7 @@ static void dump_bitstream_info(BoardConfigPtrConst bc, SUIInteractionFunctions 
 void cmd_dump_state(SUIInteractionFunctions * funcs) {
 
 	BoardConfigPtrConst bc = boardconfig_get();
-	const char * header= "\r\n*********************** State/Config **************************\r\n";
+	const char * header= "\r\n\r\n*********************** State/Config **************************\r\n";
 	const char * footer=     "***************************************************************\r\n";
 	CDCWRITESTRING(header);
 	CDCWRITESTRING(" Board: ");
@@ -198,7 +244,7 @@ void cmd_dump_state(SUIInteractionFunctions * funcs) {
 	funcs->wait();
 
 	CDCWRITESTRING(bc->board_name);
-	CDCWRITESTRING("\r\n Version: ");
+	CDCWRITESTRING("\r\n RifFPGA Version: ");
 	cdc_write_dec_u8(bc->version.major);
 	CDCWRITECHAR('.');
 	cdc_write_dec_u8(bc->version.minor);
@@ -207,9 +253,9 @@ void cmd_dump_state(SUIInteractionFunctions * funcs) {
 	CDCWRITESTRING("\r\n");
 	CDCWRITEFLUSH();
 	const Bitstream_Marker_State * bsmark =  bs_marker_get();
-	if (bsmark->have_checked) {
+	if (bsmark->have_checked && bsmark->size) {
 
-		CDCWRITESTRING("\r\n Project bitstream: ");
+		CDCWRITESTRING(" Project bitstream: ");
 		cdc_write_dec_u32(bsmark->size);
 		CDCWRITESTRING(" bytes @ 0x");
 		cdc_write_u32_ln(bsmark->start_address);
@@ -229,7 +275,9 @@ void cmd_dump_state(SUIInteractionFunctions * funcs) {
 
 	dump_bitstream_info(bc, funcs);
 
+	CDCWRITESTRING("\r\n");
 	dump_fpga_resetprog_state(bc, funcs);
+
 	CDCWRITESTRING(footer);
 
 

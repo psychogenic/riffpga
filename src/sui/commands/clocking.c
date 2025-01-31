@@ -24,6 +24,7 @@
 #include "board_config.h"
 #include "cdc_interface.h"
 #include "bitstream.h"
+#include "driver_state.h"
 
 void cmd_set_sys_clock_hz(SUIInteractionFunctions * funcs) {
 	const char * prompt = "\r\nEnter value [Hz]: ";
@@ -81,4 +82,7 @@ void cmd_set_autoclock_manual(SUIInteractionFunctions * funcs) {
 	} else {
 		CDCWRITESTRING("already disabled.\r\n");
 	}
+
+	CDCWRITESTRING("Now clocking manually.\r\n");
+	MainDriverState.clocking_manually = true;
 }

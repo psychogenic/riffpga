@@ -28,6 +28,15 @@
 
 typedef  void (*bs_prog_yield_cb)(void);
 
+typedef struct bsslotstatestruct {
+	bool found;
+	uint32_t size;
+	uint8_t namelen;
+	char name[BITSTREAM_NAME_MAXLEN + 1];
+} Bitstream_Slot_Content;
+
+
+
 void bs_init(void);
 
 bool bs_have_checked_for_marker(void);
@@ -51,9 +60,27 @@ uint32_t bs_file_size(void);
 bool bs_program_fpga(bs_prog_yield_cb cb);
 
 
-void bs_write_marker(uint32_t num_blocks, uint32_t bitstream_size, uint32_t address_start);
-void bs_write_marker_to_slot(uint8_t slot, uint32_t num_blocks, uint32_t bitstream_size, uint32_t address_start);
+// pass it an array of Bitstream_Slot_Content[POSITION_SLOTS_ALLOWED]
+// returns num found
+uint8_t bs_slot_contents(Bitstream_Slot_Content * contents);
 
+
+void bs_write_marker(uint32_t num_blocks, uint32_t bitstream_size,
+		uint32_t address_start, uint8_t name_len,
+		uint8_t * name);
+
+void bs_write_marker_to_slot(uint8_t slot, uint32_t num_blocks, uint32_t bitstream_size,
+		uint32_t address_start, uint8_t name_len,
+		uint8_t * name);
+
+void bs_erase_slot(uint8_t slot);
+
+typedef struct bitstream_metainfo_payloadstruct {
+	uint8_t header[8]; // BSMETA01
+	uint32_t bssize;
+	uint8_t namelen;
+	char name[BITSTREAM_NAME_MAXLEN + 1];
+} Bitstream_MetaInfo;
 
 
 typedef struct bitstream_state_struct {
@@ -62,9 +89,15 @@ typedef struct bitstream_state_struct {
 	uint32_t size;
 	uint32_t uf2_file_size;
 	uint32_t start_address;
+	uint8_t namelen;
+	char name[BITSTREAM_NAME_MAXLEN + 1];
+
 
 } Bitstream_Marker_State;
+
 const Bitstream_Marker_State * bs_marker_get(void);
+
+uint32_t bs_load_marker(uint8_t slot, Bitstream_Marker_State * into);
 
 
 

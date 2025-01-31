@@ -72,6 +72,8 @@
  */
 #define FPGA_RESET_EXTERNALLY_TRIGGERED		1
 
+#define FPGA_PROG_DONE_LEVEL	1 /* 1==HIGH means program success */
+
 
 // size marker wrapped in UF2
 #define BITSTREAM_UF2_MAGIC_START1		0x951C0512UL
