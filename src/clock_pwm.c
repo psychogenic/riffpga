@@ -48,7 +48,9 @@ uint32_t get_slice_hz_ceil(uint32_t div16) {
 }
 
 void clock_once(FPGA_PWM *pwmconf) {
+	DEBUG_LN("clock-once");
 	if (pwmconf->enabled) {
+		DEBUG_LN("clock-once called but pwm enabled... disabling.");
 		clock_pwm_disable(pwmconf);
 		gpio_set_function(pwmconf->pin, GPIO_FUNC_NULL);
 		gpio_set_dir(pwmconf->pin, GPIO_OUT);
@@ -74,6 +76,7 @@ bool clock_pwm_enable(FPGA_PWM *pwmconf) {
 	// pwm_set_enabled(slice, true);
 
 	pwmconf->enabled = 1;
+	DEBUG_LN("PWM enable");
 	return true;
 }
 void clock_pwm_disable(FPGA_PWM *pwmconf) {
@@ -86,7 +89,148 @@ void clock_pwm_disable(FPGA_PWM *pwmconf) {
 
 }
 
+bool clock_pwm_set_freq3(uint32_t freq_hz, FPGA_PWM *pwmconf) {
+	uint slice_num = pwm_gpio_to_slice_num(pwmconf->pin);
+	uint chan = pwm_gpio_to_channel(pwmconf->pin);
+	uint32_t clock = clock_get_hz(clk_sys);
+	uint32_t divider16 = clock / freq_hz / 4096 + (clock % (freq_hz * 4096) != 0);
+
+
+
+	if (divider16 < 16) {
+		divider16 = 16;
+	}
+
+
+	if (divider16 >= 256 * 16) {
+
+		DEBUG_LN("freq too small");
+		return false;
+	}
+
+	uint32_t wrap = clock * 16 / divider16 / freq_hz - 1;
+
+
+
+	pwmconf->top = wrap;
+	pwmconf->div = divider16;
+	pwmconf->freq_hz = freq_hz;
+
+
+
+	pwm_set_clkdiv_int_frac(slice_num, pwmconf->div / 16, pwmconf->div & 0xF);
+	pwm_set_wrap(slice_num, pwmconf->top);
+	pwm_set_chan_level(slice_num, chan, pwmconf->top / 2);
+	pwm_set_enabled(slice_num, true);
+
+
+#ifdef DEBUG_OUTPUT_ENABLED
+	DEBUG("PWM configured with:\r\n\t top:");
+	cdc_write_dec_u32_ln(pwmconf->top);
+	DEBUG("\t div:");
+	cdc_write_dec_u32_ln(pwmconf->div);
+	DEBUG("\t level:");
+	cdc_write_dec_u32_ln(wrap/2);
+	DEBUG("\t freq:");
+	cdc_write_dec_u32(pwmconf->freq_hz);
+	DEBUG(" at sysclk ");
+	cdc_write_dec_u32_ln(clock);
+	CDCWRITEFLUSH();
+
+#endif
+	if (wrap) {
+		return true;
+	}
+	return false;
+}
+
+
+#define PWM_TOP_MAX 65534
 bool clock_pwm_set_freq(uint32_t freq_hz, FPGA_PWM *pwmconf) {
+	uint slice_num = pwm_gpio_to_slice_num(pwmconf->pin);
+	uint chan = pwm_gpio_to_channel(pwmconf->pin);
+
+	uint32_t source_hz = clock_get_hz(clk_sys);
+	uint32_t divider16;
+	uint32_t wrap = 0;
+	if ((source_hz + freq_hz / 2) / freq_hz < PWM_TOP_MAX) {
+		// If possible (based on the formula for TOP below), use a DIV of 1.
+		// This also prevents overflow in the DIV calculation.
+		divider16 = 16;
+
+		// Same as get_slice_hz_round() below but canceling the 16s
+		// to avoid overflow for high freq.
+		wrap = (source_hz + freq_hz / 2) / freq_hz - 1;
+	} else {
+		// Otherwise, choose the smallest possible DIV for maximum
+		// duty cycle resolution.
+		// Constraint: 16*F/(div16*freq) < TOP_MAX
+		// So:
+		divider16 = get_slice_hz_ceil(PWM_TOP_MAX * freq_hz);
+
+		// Set TOP as accurately as possible using rounding.
+		wrap = get_slice_hz_round(divider16 * freq_hz) - 1;
+	}
+
+
+	if (divider16 < 16) {
+		divider16 = 16;
+	}
+
+
+	if (divider16 >= 256 * 16) {
+
+		DEBUG_LN("freq too small");
+		return false;
+	}
+
+	if (wrap < 2) {
+		if (divider16 == 16) {
+			CDCWRITESTRING("Frequency too high -- setting to max");
+			wrap = 2;
+		}
+	}
+
+
+	pwmconf->top = wrap;
+	pwmconf->div = divider16;
+	pwmconf->freq_hz = freq_hz;
+
+
+
+	pwm_set_clkdiv_int_frac(slice_num, pwmconf->div / 16, pwmconf->div & 0xF);
+	pwm_set_wrap(slice_num, pwmconf->top);
+	pwm_set_chan_level(slice_num, chan, pwmconf->top / 2);
+	pwm_set_enabled(slice_num, true);
+
+
+#ifdef DEBUG_OUTPUT_ENABLED
+	DEBUG("PWM configured with:\r\n\t top:");
+	cdc_write_dec_u32_ln(pwmconf->top);
+	DEBUG("\t div:");
+	cdc_write_dec_u32_ln(pwmconf->div);
+	DEBUG("\t level:");
+	cdc_write_dec_u32_ln(wrap/2);
+	DEBUG("\t freq:");
+	cdc_write_dec_u32(pwmconf->freq_hz);
+	DEBUG(" at sysclk ");
+	cdc_write_dec_u32_ln(source_hz);
+	CDCWRITEFLUSH();
+
+#endif
+
+	return true;
+}
+
+
+float clock_pwm_freq_achieved(FPGA_PWM * pwmconf) {
+	float fact = pwmconf->top * ((pwmconf->div/16.00f) + ((1.0 * (pwmconf->div & 0xF))/16.00));
+	return clock_get_hz(clk_sys)/fact;
+
+}
+
+
+bool clock_pwm_set_freq2(uint32_t freq_hz, FPGA_PWM *pwmconf) {
 	// Set the frequency, making "top" as large as possible for maximum resolution.
 	// Maximum "top" is set at 65534 to be able to achieve 100% duty with 65535.
 #define TOP_MAX 65534
@@ -132,10 +276,31 @@ bool clock_pwm_set_freq(uint32_t freq_hz, FPGA_PWM *pwmconf) {
 	pwmconf->freq_hz = freq_hz;
 	uint16_t duty_u16 = pwmconf->duty;
 	uint32_t cc = (duty_u16 * (top + 1) + 0xffff / 2) / 0xffff;
+	pwm_config config = pwm_get_default_config();
+
+
+
 	pwm_set_wrap(slice, top);
 	pwm_set_chan_level(slice, channel, cc);
-
 	pwm_set_enabled(slice, true);
+
+#ifdef DEBUG_OUTPUT_ENABLED
+	DEBUG("PWM configured with:\r\n\t top:");
+	cdc_write_dec_u32_ln(pwmconf->top);
+	DEBUG("\t div:");
+	cdc_write_dec_u32_ln(pwmconf->div);
+	DEBUG("\t level:");
+	cdc_write_dec_u32_ln(cc);
+	DEBUG("\t div:");
+	cdc_write_dec_u32_ln(pwmconf->div);
+	DEBUG("\t freq:");
+	cdc_write_dec_u32(pwmconf->freq_hz);
+	DEBUG(" at sysclk ");
+	cdc_write_dec_u32_ln(source_hz);
+
+#endif
+
+
 	return true;
 
 }

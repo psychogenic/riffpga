@@ -189,6 +189,7 @@ void boardconfig_autoclock_disable();
 void boardconfig_set_autoclock_hz(uint32_t v);
 
 
+
 uint8_t boardconfig_selected_bitstream_slot(void);
 void boardconfig_set_bitstream_slot(uint8_t s);
 
@@ -203,5 +204,7 @@ void boardconfig_dump(void);
 
 
 FPGA_PWM * boardconfig_autoclocking(uint8_t idx);
+uint32_t boardconfig_autoclocking_achieved(uint8_t idx);
+
 
 #endif /* SRC_BOARD_CONFIG_H_ */

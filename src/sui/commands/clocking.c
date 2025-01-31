@@ -65,6 +65,12 @@ void cmd_set_autoclock_hz(SUIInteractionFunctions *funcs) {
 		CDCWRITESTRING("Setting auto-clocking\r\n");
 
 	}
+	/* this isn't working quite right...
+	CDCWRITEFLUSH();
+	CDCWRITESTRING("Achieved: ");
+	cdc_write_dec_u32( (uint32_t)boardconfig_autoclocking_achieved(0));
+	CDCWRITESTRING(" Hz\r\n");
+	*/
 
 }
 void cmd_set_autoclock_manual(SUIInteractionFunctions *funcs) {

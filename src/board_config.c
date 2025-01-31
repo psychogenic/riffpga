@@ -104,6 +104,9 @@ BoardConfigPtrConst boardconfig_get(void) {
 
 }
 
+uint32_t boardconfig_autoclocking_achieved(uint8_t idx) {
+	return (uint32_t)clock_pwm_freq_achieved(boardconfig_autoclocking(idx));
+}
 FPGA_PWM* boardconfig_autoclocking(uint8_t idx) {
 	if (idx > 1) {
 		return NULL;
