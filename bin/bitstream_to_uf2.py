@@ -102,7 +102,7 @@ def get_args():
                         
     parser.add_argument('--factoryreset', required=False,
                         action='store_true',
-                        help='Ignore everything, create a factory reset package')
+                        help='Ignore other --args, just create a factory reset packet of death')
                         
     parser.add_argument('infile',
                         help='input bitstream')

@@ -10,18 +10,22 @@ With riffpga you get:
 
   *  **drag & drop** configuration of pretty much any FPGA: copy the file to the drive and programming is done;
   
-  *  a dynamically **configurable clock** frequency for the FPGA designs: clock designs from 10Hz to 60MHz;
+  *  a dynamically **configurable clock** frequency for the FPGA designs: clock designs from 10Hz to (at least) 40MHz;
   
   *  **multiple bitstream** slots that can be switched on the fly: change the design that's running at any time without reprogramming;
   
-  *  A **USB-to-UART** serial bridge to the FPGA; and
+  *  **named slots** for bitstreams and associated **clock frequency**, adjusted on the fly when loaded;
   
-  *  a **serial interface** to manage clock rates, reset the FPGA, select bitstreams or do pretty much anything you'd like.
-
-And all this basically costs you a whole dollar.  At this time, the system's been tested with [Lattice iCE40 HX](https://www.latticesemi.com/ice40) and [UltaPlus](https://www.latticesemi.com/en/Products/FPGAandCPLD/iCE40UltraPlus) chips, but anything that has a CRAM mode we can manually twiddle should be doable.
+  *  a **serial interface** to manage clock rates, reset the FPGA, select bitstreams or do pretty much anything you'd like; and
+  
+  *  A **USB-to-UART** serial bridge to the FPGA.
+  
+  
+And all this basically costs you a whole dollar.  At this time, the system's been tested with [Lattice iCE40 HX](https://www.latticesemi.com/ice40) and [UltaPlus](https://www.latticesemi.com/en/Products/FPGAandCPLD/iCE40UltraPlus) chips, but anything that has a *CRAM* mode we can manually twiddle to configure the FPGA should be doable.
 
 
 ## Drag & Drop Programming
+
 Drag & drop, or copy over, files to program the FPGA.
 
 ![drag and drop](./images/riffpga_dnd.png)
@@ -35,12 +39,38 @@ The system will automatically detect which slot this bitstream goes into and set
 
 Though you don't *need* to access it, by default riffpga provides a serial device that allows you to interact with the system.  This will appear as an ACM device under Linux (e.g. `/dev/ttyACM0`) and some COM thing under windows.
 
+
+### online help
+
 Once connected using a serial terminal, you can issue a `?` to list the available commands.
 
 
 ![serial interface](./images/riffpga_terminal.png)
 
-A number of commands are available, for instance to set the project auto-clocking frequency and select the bitstream slot that is active.  These configuration changes may be preserved at any point using the `save` command, otherwise the prior defaults will be loaded on next power-up.
+### bitstream selection
+
+Multiple bitstreams may be loaded and selected dynamically.  Optionally, each bitstream may be given a name and an associated clocking rate, so it's a simple matter to switch between designs.
+
+
+![bitstream slot selection](./images/riffpga_slots.png)
+
+### UART bridge
+
+Since we have the USB connection and serial terminal, it might be nice to get serial comms working on FPGA designs without needing any extra wiring, yes? 
+
+The UART bridge mode shuttles everything coming to the RP2 over the comm port a pin on the FPGA, and performs the reverse operation, relaying the FPGA's tx to you via the USB-serial.
+
+As long as your design includes a UART on the right pins it will just work, and the baudrate used by the RP2 is configurable through one of the commands.
+
+You can activate the bridge using the `uartbridge` command.  Once it's activated, it would seem impossible to deactivate without resetting.  But wait, there's more.
+
+While forwarding the data to and fro, the RP monitors what comes in from the computer side, looking for a specific sequence and will tear down the connection if it sees these.  The combo is configurable on a per-board basis, by default it's `0x1B 0x1B 0x1B`... which you can send with a program but this is just the ESCape key three times, so you can send it with your keyboard.
+
+
+
+### running commands
+
+A number of commands are available, for instance to playing with the clocking frequency or for forcing reset and reprogramming.  Configuration changes may be preserved at any point using the `save` command, otherwise the prior defaults will be loaded on next power-up.
 
 Entering:
 
@@ -82,9 +112,11 @@ In your own projects, you can either wire up a bare RP2 chip or drop in a [Raspb
 
 The basic function doesn't require all that much wiring.  Even with all the "options" you basically just need 9 pins.
 
-Here are the two boards from which I grabbed the terminal screenshots, along with the relevant section of a schematic that uses this system with a bare RP2040 chip:
+Here are the two boards from which I grabbed the terminal screenshots, along with the relevant section of a schematic that uses this system, where you can see a bare RP2040 chip that's tied to USB on one side and an FPGA on the other:
 
 ![riffpga hook-up](./images/riffpga_basichookup.jpg)
+
+### required
 
 Other than having the RP2040 wired up to function (meaning with it's oscillator, flash, a means to trigger the boot-mode for updates, USB data etc), the important things are to have:
 
@@ -94,7 +126,9 @@ Other than having the RP2040 wired up to function (meaning with it's oscillator,
   *  An I/O connected to a global buffer pin on the FPGA, so we can clock projects with it
   
 and to setup the FPGA such that it defaults to being in slave mode (i.e. that it won't try and drive the SPI lines to access a flash chip that isn't there and conflict with the RP2).
-  
+
+### optional
+
 Optional, but recommended are connecting the RP2040 to 
 
   * the CDONE or equivalent, so we can see that the programming worked out;
@@ -102,7 +136,16 @@ Optional, but recommended are connecting the RP2040 to
   * UART tx and rx lines somewhere onto the FPGA;
   
   * A blinkenlight and maybe some user switches, 'cause they never hurt.
-  
+
+### precision clocking
+
+Finally, in some cases the clocking signal coming from the RP2040 might not be as precise or jitter-free as you need.  For these cases, I wire up a standard oscillator on another of the global buffer inputs and then select the flexibility of the RP2 clocking for some projects, and the precision of the external oscillator for designs that need it.
+
+This allows for experimentation ("hey, maybe I can get away with a PWMed clock from the RP... let's see") while still allowing the fallback of adding an external OSC to the BOM if I have to.
+
+
+
+
 ## Software
 
 This code may be all you need.  It's all C, programmed using the [Pico C SDK](https://datasheets.raspberrypi.com/pico/raspberry-pi-pico-c-sdk.pdf).  
@@ -154,15 +197,44 @@ Anyway, now you have a wonderful pico uf2 file, e.g. `build/riffpga_generic.uf2`
 
 ### Creating UF2s from bitstreams
 
-Ok, so you have a blinky project for your FPGA.  How do you get it on there?  Yeah, it's drag&drop but you need that UF2 file.
+Ok, so you have a blinky project for your FPGA.  How do you get it on there?  Yeah, it's drag&drop but you need a valid UF2 file to copy into there.  There's a script included for that, so you're going to need some Python.
 
 First, get [uf2utils](https://pypi.org/project/uf2utils/) using pip.
 
-Next, if you changed the UF2 magic as per the above, edit [bitstream_to_uf2.py](bin/bitstream_to_uf2.py).
+
+That little Python magic script is included to generate valid UF2 from bin files (the bitstream bundle of bits you normally send over to the CRAM) and you can run `bitstream_to_uf2.py --help` to see its current list of options:
+
+```
+
+usage: bitstream_to_uf2.py [-h] [--target {generic,efabless,psydmi}] [--slot SLOT] 
+                           [--name NAME] [--autoclock AUTOCLOCK]
+                           [--appendslot] [--factoryreset]
+                           infile outfile
+
+Convert bitstream .bin to .uf2 file to use with riffpga
+
+positional arguments:
+  infile                input bitstream
+  outfile               output UF2 file
+
+options:
+  -h, --help            show this help message and exit
+  --target {generic,efabless,psydmi}
+                        Target board [generic]
+  --slot SLOT           Slot (1-3) [1]
+  --name NAME           Pretty name for bitstream
+  --autoclock AUTOCLOCK
+                        Auto-clock preference for project, in Hz [10-60e6]
+  --appendslot          Append to slot to output file name
+  --factoryreset        Ignore other --args, just create a factory reset packet of death
+
+Copy the resulting UF2 over to the mounted FPGAUpdate drive
+
+```
+
+If you changed the UF2 magic as per the above, you need to tell the generator about the new values. Edit [bitstream_to_uf2.py](bin/bitstream_to_uf2.py).
 
 In there, you'll find a `TargetOptions` dict.  Edit or create a key, and set the various elements, e.g.
-
-
 
 ```
     'myplatform': UF2Settings(
@@ -173,25 +245,7 @@ In there, you'll find a `TargetOptions` dict.  Edit or create a key, and set the
                     magicend= 0x987654),
 ```
 
-Once that's in the dictionary, you can run `bitstream_to_uf2.py --help` and you'll see your platform in the target list
-
-```
-usage: bitstream_to_uf2.py [-h] [--target {generic,efabless,psydmi,myplatform}] [--slot SLOT] infile outfile
-
-Convert bitstream .bin to .uf2 file to use with riffpga
-
-positional arguments:
-  infile                input bitstream
-  outfile               output UF2 file
-
-options:
-  -h, --help            show this help message and exit
-  --target {generic,efabless,psydmi,myplatform}
-                        Target board [generic]
-  --slot SLOT           Slot (1-3) [1]
-
-Copy the resulting UF2 over to the mounted FPGAUpdate drive
-```
+Once that's in the dictionary, 
 
 So you can just find that .bin file for your project and run:
 
@@ -200,6 +254,13 @@ So you can just find that .bin file for your project and run:
 ```
 
 It will produce blinky.uf2.  You can run `uf2info /tmp/blinky.uf2` to see that things are sane.  Or just copy over to the FPGAUpdate drive.  Yay.
+
+Even better, if you want the slot to be **named** and/or **auto-clocked** at a particular frequency on load, then call it with the `--name` and `--autoclock` params, e.g. 
+
+```
+./bin/bitstream_to_uf2.py --target myplatform --autoclock 2000000 --name "Wonderful Blinky" /path/to/blinky.bin /tmp/blinky.uf2
+```
+
 
 
 # License

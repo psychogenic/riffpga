@@ -73,7 +73,7 @@
  * Set to 1 if FPGA may be reset externally
  * and this may be monitored on PIN_FPGA_RESET
  */
-#define FPGA_RESET_EXTERNALLY_TRIGGERED		1
+#define FPGA_RESET_EXTERNALLY_TRIGGERED		0
 
 #define FPGA_PROG_DONE_LEVEL	1 /* 1==HIGH means program success */
 
@@ -111,13 +111,13 @@
 #define USER_SWITCH_IDX_USR2		3
 
 #define USER_SWITCH_RESET_PIN		15
-#define USER_SWITCH_RESET_FUNCTION	1 /* 1 == Reset */
+#define USER_SWITCH_RESET_FUNCTION	0 /* 1 == Reset */
 #define USER_SWITCH_RESET_INVERT	1
 #define USER_SWITCH_RESET_PULL		0
 #define USER_SWITCH_RESET_EDGE		GPIO_IRQ_EDGE_FALL
 
 
-#define USER_SWITCH_CLOCK_PIN		24
+#define USER_SWITCH_CLOCK_PIN		5
 #define USER_SWITCH_CLOCK_FUNCTION	2 /* 2 == Clocking */
 #define USER_SWITCH_CLOCK_INVERT	0
 #define USER_SWITCH_CLOCK_PULL		0
@@ -139,6 +139,7 @@
 #define SYSTEM_NEWER_VERSION_AUTO_RESET		1
 #define SYSTEM_INPUTS_NUM					0
 #define SYSTEM_INPUTS_IO_LIST				/* 0,1,2,3,4,5,6,7 */
+
 
 
 /*

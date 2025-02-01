@@ -43,6 +43,11 @@
 
 DriverState MainDriverState;
 
+
+// for dev emergencies, lol:
+// define FORCE_FACTORY_RESET
+
+
 //--------------------------------------------------------------------+
 // MACRO CONSTANT TYPEDEF PROTYPES
 //--------------------------------------------------------------------+
@@ -70,7 +75,11 @@ void setup(void) {
 	uf2_init();
 
 	boardconfig_init();
+#ifdef FORCE_FACTORY_RESET
+	{
+#else
 	if (boardconfig_version_mismatch() == true) {
+#endif
 		// we reset -- no guarantee that bitstreams
 		// slots are safe, so erase those too
 		boardconfig_factoryreset(true);
