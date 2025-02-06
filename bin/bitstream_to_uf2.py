@@ -10,10 +10,15 @@ import sys
 import os.path
 import argparse
 import struct
-from uf2utils.file import UF2File
-from uf2utils.family import Family
-from uf2utils.block import Header, DataBlock
-from uf2utils.constants import Flags
+UF2UtilsPresent = True
+try:
+    from uf2utils.file import UF2File
+    from uf2utils.family import Family
+    from uf2utils.block import Header, DataBlock
+    from uf2utils.constants import Flags
+except ModuleNotFoundError:
+    UF2UtilsPresent = False
+    
 import random
 
 class UF2Settings:
@@ -92,7 +97,7 @@ def get_args():
                         help='Pretty name for bitstream')
     parser.add_argument('--autoclock', required=False, type=int,
                         default=0,
-                        help='Auto-clock preference for project, in Hz [10-60e6]')
+                        help='Auto-clock preference for project, in Hz [10-40M]')
                         
         
     parser.add_argument('--appendslot', required=False,
@@ -161,7 +166,7 @@ def get_metadata_block(settings:UF2Settings, flash_address:int, bitstreamSize:in
     payload = bytes(metaheader, encoding='ascii')
     payload += struct.pack('<IB', bitstreamSize, bsnamelen) + bsnameArray
     payload += struct.pack('<I', autoclock)
-    print(payload)
+    # print(payload)
     hdr = Header(Flags.FamilyIDPresent | Flags.NotMainFlash, flash_address, len(payload), 0, 1, settings.boardFamily)
     return DataBlock(payload, hdr, magic_start1=(settings.magicStart1+metadata_start1_offset),
                         magic_end=settings.magicEnd)
@@ -191,6 +196,13 @@ def gen_factory_reset(args):
 def main():
     
     args = get_args()
+    
+    if not UF2UtilsPresent:
+        print()
+        print("ERROR: You need uf2utils to run this program")
+        print("Run `pip install uf2utils` or otherwise get it from pypi.org")
+        print()
+        return 
     
     if args.factoryreset:
         gen_factory_reset(args)
