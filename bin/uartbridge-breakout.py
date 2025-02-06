@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-
+'''
+    If you setup the system with a "weird" breakout for the 
+    UART bridge, rather than the default "ESCAPE ESCAPE ESCAPE", 
+    this script will shoot over the write bytes to get out of 
+    bridge-mode.
+'''
 # serial port
 serial_port = '/dev/ttyACM0'
 # breakout sequence
