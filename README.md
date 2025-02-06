@@ -106,6 +106,26 @@ By wiring up the RP2 chip appropriately and using this software, it's possible t
 
 To leverage all this awesome in your own projects, there are two aspects to cover: the hardware (in essence an RP2 chip tied to an FPGA that has some sort of CRAM to program it) and the software (this code, configured for your setup, and suitably produced UF2 file for the bitstreams).
 
+
+## pre-compiled firmware
+
+If you just want to try it out, you can put a Rasberry Pi Pico (or other RP2040 board) into bootmode and copy over the [uf2 file in firmware](firmware/).  After reboot, the drive and serial terminal should both come up.
+
+If you want to hook it up to an actual FPGA, use the GPIOs specified in [config_defaults/generic.h](src/config_defaults/generic.h), most importantly
+
+
+| Pico GPIO      |   FPGA pin     |
+|----------------|----------------|
+|  0             | FPGA CRAM MISO |
+|  1             | FPGA CRAM SS   |
+|  2             | FPGA CRAM SCK  |
+|  3             | FPGA CRAM MOSI |
+|  4             | FPGA nRST      |
+|  5             | FPGA GB CLOCK  |
+|  9             | FPGA DONE      |
+
+With that done, sending over bitstream UF2s should work (at least with Lattice-style FPGAs that support CRAM SPI programming).  See below on how to generate a UF2 from your bitstream binary.
+
 ## Hardware
 
 In your own projects, you can either wire up a bare RP2 chip or drop in a [Raspberry Pi Pico](https://www.raspberrypi.com/products/raspberry-pi-pico/).
@@ -202,7 +222,15 @@ Ok, so you have a blinky project for your FPGA.  How do you get it on there?  Ye
 First, get [uf2utils](https://pypi.org/project/uf2utils/) using pip.
 
 
-That little Python magic script is included to generate valid UF2 from bin files (the bitstream bundle of bits you normally send over to the CRAM) and you can run `bitstream_to_uf2.py --help` to see its current list of options:
+That little [Python magic script](bin/bitstream_to_uf2.py) is included to generate valid UF2 from bin files (the bitstream bundle of bits you normally send over to the CRAM).
+
+```
+python ./bin/bitstream_to_uf2.py --target generic --autoclock 1000 /path/to/my.bin /tmp/my.uf2
+```
+
+And could now copy over `/tmp/my.uf2` to the virtual mass storage device.
+
+You can run `bin/bitstream_to_uf2.py --help` to see its current list of options:
 
 ```
 
