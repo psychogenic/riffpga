@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 '''
 Created on Dec 17, 2024
 
@@ -202,8 +201,7 @@ def main():
         sys.exit(-1)
         
     if len(args.name) > metadata_proj_name_maxlen:
-        print(f'Name can only be up to {metadata_proj_name_maxlen} characters')
-        sys.exit(-2) 
+        print(f'Name can only be up to {metadata_proj_name_maxlen} characters. Will truncate.')
         
     if args.autoclock:
         if args.autoclock < 10 or args.autoclock > 60e6:
