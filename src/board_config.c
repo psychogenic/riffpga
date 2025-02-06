@@ -220,7 +220,11 @@ void board_config_reinit(void) {
 							.pin_miso = PIN_FPGA_SPI_MISO,
 							.pin_mosi = PIN_FPGA_SPI_MOSI
 					},
+#ifdef FPGA_PROG_DONE_LEVEL
 					.pin_done = PIN_FPGA_PROG_DONE,
+#else
+					.pin_done = 0,
+#endif
 					.pin_reset = PIN_FPGA_RESET,
 					.reset_inverted = FPGA_RESET_INVERTED,
 			},

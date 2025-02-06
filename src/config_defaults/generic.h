@@ -41,7 +41,7 @@
 /*
  * The name of this board
  */
-#define BOARD_NAME          "UF2FPGA"
+#define BOARD_NAME          "rif-generic"
 
 /*
  * DRIVE_VOLUME_LABEL: what gets mounted as
@@ -79,7 +79,7 @@
 #define PIN_FPGA_SPI_CS		1
 #define PIN_FPGA_SPI_SCK	2
 #define PIN_FPGA_SPI_MOSI	3
-// CDONE-type pin, see FPGA_PROG_DONE_LEVEL
+// CDONE-type pin, see FPGA_PROG_DONE_LEVEL below
 #define PIN_FPGA_PROG_DONE	9
 
 
@@ -117,6 +117,13 @@
 #define FLASH_SPI_BAUDRATE 			4000000UL
 
 
+/*
+ * If you have a "Done" pin hooked-up,
+ * FPGA_PROG_DONE_LEVEL lets the system know what means "programmed".
+ * If you don't, and want to ignore all that, comment out the #define
+ * and the code will just assume the FPGA's been programmed as
+ * appropriate.
+ */
 #define FPGA_PROG_DONE_LEVEL	1 /* 1==HIGH on PIN_FPGA_PROG_DONE means program success */
 
 /*
