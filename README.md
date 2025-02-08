@@ -87,6 +87,14 @@ There are a host of commands and functions available, and the current system sta
 
 ![serial interface](./images/riffpga_statedump.png)
 
+# Supported FPGAs
+
+In theory, any FPGA that has some means of configuring it from an external device, e.g. CRAM programming for Lattice, [slave serial for xilinx 7](https://docs.amd.com/v/u/en-US/xapp583-fpga-configuration) etc, should be capable of leveraging riffpga.
+
+At the time of this commit, the lattice iCE40 are supported and the Ultraplus and HX families tested.
+
+Pull requests are more than welcome for new platform support.
+
 # How it Works
 
 All this functionality is enabled by a combination of two things:
