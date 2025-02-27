@@ -28,7 +28,7 @@
 
 void cmd_factory_reset_config(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\nConfiguration Factory Reset!\r\n");
-	boardconfig_factoryreset(false);
+	boardconfig_factoryreset(true);
 	cmd_dump_state(funcs);
 }
 void cmd_save_config(SUIInteractionFunctions *funcs) {

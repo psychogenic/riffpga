@@ -166,6 +166,14 @@ static CommandInfo commands[] = {
 				.needs_confirmation = false,
 				.cb = cmd_dump_raw_config
 		},
+		{
+				.command = "rawslot",
+				.help = "Dump slot conf, raw bytes",
+				.hotkey = 'Y',
+				.needs_confirmation = false,
+				.cb = cmd_dump_raw_slot
+		},
+
 #endif
 		{
 				.command = "reboot",

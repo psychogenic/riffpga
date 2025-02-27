@@ -195,6 +195,22 @@ static void dump_gp_inputs(BoardConfigPtrConst bc,
 
 	}
 }
+
+
+static void uf2_magic_info(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
+
+	CDCWRITESTRING(" UF2 Magic\r\n  Bounds: 0x");
+	cdc_write_u32(bc->bin_download.magic_start);
+	CDCWRITESTRING("/0x");
+	cdc_write_u32_ln(bc->bin_download.magic_end);
+	CDCWRITESTRING("  Family: 0x");
+	cdc_write_u32_ln(bc->bin_download.family_id);
+	funcs->wait();
+	CDCWRITEFLUSH();
+}
+
+
 static void dump_bitstream_info(BoardConfigPtrConst bc,
 		SUIInteractionFunctions *funcs) {
 
@@ -253,14 +269,7 @@ void cmd_dump_state(SUIInteractionFunctions *funcs) {
 	cdc_write_dec_u8_ln(bc->version.patchlevel);
 	CDCWRITESTRING("\r\n");
 	CDCWRITEFLUSH();
-	const Bitstream_Marker_State *bsmark = bs_marker_get();
-	if (bsmark->have_checked && bsmark->settings.size) {
 
-		CDCWRITESTRING(" Project bitstream: ");
-		cdc_write_dec_u32(bsmark->settings.size);
-		CDCWRITESTRING(" bytes @ 0x");
-		cdc_write_u32_ln(bsmark->settings.start_address);
-	}
 
 	funcs->wait();
 	dump_clocks(bc, funcs);
@@ -271,6 +280,16 @@ void cmd_dump_state(SUIInteractionFunctions *funcs) {
 	funcs->wait();
 
 	dump_switches_conf(bc, funcs);
+	uf2_magic_info(bc, funcs);
+	const Bitstream_Marker_State *bsmark = bs_marker_get();
+	if (bsmark->have_checked && bsmark->settings.size) {
+
+		CDCWRITESTRING(" Project bitstream: ");
+		cdc_write_dec_u32(bsmark->settings.size);
+		CDCWRITESTRING(" bytes @ 0x");
+		cdc_write_u32_ln(bsmark->settings.start_address);
+	}
+	funcs->wait();
 
 	dump_gp_inputs(bc, funcs);
 
@@ -301,3 +320,23 @@ void cmd_dump_raw_config(SUIInteractionFunctions *funcs) {
 	CDCWRITESTRING("\r\n\r\n");
 	CDCWRITEFLUSH();
 }
+
+void cmd_dump_raw_slot(SUIInteractionFunctions *funcs) {
+	UF2_Block* raw_bs_block = bs_info();
+
+	uint8_t *v = (uint8_t*) raw_bs_block;
+
+	CDCWRITESTRING("\r\nCurrent slot raw bytes:\r\n");
+	for (uint32_t i = 0; i < sizeof(UF2_Block); i++) {
+		if (i % 32 == 0) {
+			CDCWRITESTRING("\r\n");
+			CDCWRITEFLUSH();
+		}
+		cdc_write_u8_leadingzeros(v[i]);
+		CDCWRITECHAR(' ');
+	}
+	CDCWRITESTRING("\r\n\r\n");
+	CDCWRITEFLUSH();
+}
+
+

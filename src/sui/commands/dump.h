@@ -25,5 +25,6 @@
 #include "sui/sui_util.h"
 void cmd_dump_state(SUIInteractionFunctions * funcs);
 void cmd_dump_raw_config(SUIInteractionFunctions * funcs);
+void cmd_dump_raw_slot(SUIInteractionFunctions *funcs);
 
 #endif /* SUI_COMMANDS_DUMP_H_ */

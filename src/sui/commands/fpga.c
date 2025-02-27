@@ -29,9 +29,7 @@
 void cmd_fpga_erase(SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING("\r\n Erasing FPGA bitstreams\r\n");
-	for (uint8_t i = 0; i < POSITION_SLOTS_NUM; i++) {
-		bs_erase_slot(i);
-	}
+	bs_erase_all();
 
 	board_flash_pages_erased_clear();
 	bs_init();
