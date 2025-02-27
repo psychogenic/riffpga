@@ -36,7 +36,7 @@
 #include "board_defs.h"
 
 
-#define BOARD_NAME_CHARS	23
+#define BOARD_NAME_CHARS		23
 #define POSITION_SLOTS_NUM		4
 #define POSITION_SLOTS_ALLOWED	3
 

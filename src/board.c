@@ -23,7 +23,8 @@
 #include "cdc_interface.h"
 
 const uint8_t *flash_read_access = (const uint8_t*) (XIP_BASE);
-#define MAX_NUM_PAGES 128
+/* note: each page is 4k */
+#define MAX_NUM_PAGES 192
 
 typedef struct page_state_struct {
 	int16_t index;
@@ -65,7 +66,7 @@ static uint32_t uf2_start_address = 0;
 #endif
 
 void board_reboot(void) {
-	watchdog_enable(250, 1);
+	watchdog_enable(REBOOT_DELAY_MS, 1);
 	// while(1) {}
 
 }
@@ -204,7 +205,7 @@ static void mark_as_erased(uint16_t page) {
 			pages_erased[i].index = page;
 			pages_erased[i].erased = 1;
 			pages_erased[i].blocks_written = 0;
-			BRD_DEBUG("Mark page "); BRD_DEBUG_U16(page); BRD_DEBUG(" erased @ "); BRD_DEBUG_U8_LN(i);
+			BRD_DEBUG("Mark page 0x"); BRD_DEBUG_U16(page); BRD_DEBUG(" erased @ "); BRD_DEBUG_U8_LN(i);
 			CDCWRITEFLUSH();
 
 			return;
@@ -270,6 +271,9 @@ bool board_flash_write(uint32_t addr, void const *data, uint32_t len) {
 	}
 
 	if (has_been_programmed(addr, len)) {
+		CDCWRITESTRING("\r\nWRN: DOUBLE write @ 0x");
+		cdc_write_u32_ln(addr);
+
 		BRD_DEBUG("Has already been written! ");
 		BRD_DEBUG_U32(addr);
 		BRD_DEBUG(" len ");
@@ -285,7 +289,8 @@ bool board_flash_write(uint32_t addr, void const *data, uint32_t len) {
 		register_programmed(addr, len);
 		size_uf2_written += len;
 	} else {
-		CDCWRITESTRING("\r\nWrite fail!!\r\n");
+		CDCWRITESTRING("\r\nWrite fail!! @0x");
+		cdc_write_u32_ln(addr);
 	}
 
 	return 1;
@@ -318,5 +323,5 @@ void board_flash_flush(void) {
 
 	BRD_DEBUG_LN("FLUSH CALLED!!!! WE DONE");
 	board_flash_pages_erased_clear();
-	sleep_ms(200);
+	sleep_ms(250);
 }
