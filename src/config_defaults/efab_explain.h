@@ -22,7 +22,7 @@
 #ifndef CONFIG_DEFAULTS_EFAB_EXPLAIN_H_
 #define CONFIG_DEFAULTS_EFAB_EXPLAIN_H_
 
-#define BOARD_NAME          "Efabless Explain"
+#define BOARD_NAME          "ChipIgnite Explain"
 #define DRIVE_VOLUME_LABEL  "FPGAUPDATE"
 
 // should default to 120MHz for safety with
