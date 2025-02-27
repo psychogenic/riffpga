@@ -78,6 +78,8 @@ typedef struct {
 
     uint8_t writtenMask[MAX_BLOCKS / 8 + 1];
 
+    uint32_t payloadTotal;
+
 } WriteState;
 
 typedef struct {

@@ -732,9 +732,20 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 
 
 
-  if ( !is_uf2_bin_block(bl, bc) ) {
+  if ( ! is_uf2_bin_block(bl, bc) ) {
 
-	  if (is_uf2_binmeta_block(bl, bc)) {
+	  // this is not a binary/bitstream block
+	  // might still be valid...
+
+	  if (is_uf2_binfactreset_block(bl, bc)) {
+	  		  CDCWRITESTRING("This is a FACTORY RESET request!!!");
+	  		  boardconfig_factoryreset(true);
+	  		  CDCWRITEFLUSH();
+
+	      	  sleep_ms(150);
+	      	  uf2_write_complete();
+	  } else if (is_uf2_binmeta_block(bl, bc)) {
+		  // ah, it's a meta-info block
 #ifdef UF2_WRITE_DEBUG_UF2_METAINFO_DUMP
 		  /*
 		  DEBUG_LN("Got our meta-data");
@@ -756,16 +767,8 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 				  debug_dump_datablock(&bs_write_metainfo, sizeof(bs_write_metainfo));
 		#endif
 
-		  state->numWritten++;
-	  } else if (is_uf2_binfactreset_block(bl, bc)) {
-		  CDCWRITESTRING("This is a FACTORY RESET request!!!");
-		  boardconfig_factoryreset(true);
-		  CDCWRITEFLUSH();
-
-    	  sleep_ms(150);
-    	  uf2_write_complete();
+		state->numWritten++;
 	  }
-
 
 
 
@@ -790,23 +793,15 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
 
 
 	  return -1;
+  } /* end if not a bitstream block */
+
+  // get here: this should be a valid binary bitstream block
+  if (! bl->numBlocks) {
+	  // this is a bit weird, no?
+	  CDCWRITESTRING("Got bitstream block w/o numblocks?\r\n");
+	  return BPB_SECTOR_SIZE;
   }
 
-  // GF_DEBUG("NumBlock in U: ");
-  // GF_DEBUG_U32_LN(bl->numBlocks);
-
-  if (bl->familyID == bc->bin_download.family_id) {
-    // generic family ID
-
-    board_flash_write(bl->targetAddr, bl->data, bl->payloadSize);
-  }else {
-    // TODO family matches VID/PID
-	GF_DEBUG_LN("Invalid fam");
-    return -1;
-  }
-
-  //------------- Update written blocks -------------//
-  if ( bl->numBlocks ) {
     // Update state num blocks if needed
     if ( state->numBlocks != bl->numBlocks ) {
       if ( bl->numBlocks >= MAX_BLOCKS || state->numBlocks ) {
@@ -819,84 +814,111 @@ int uf2_write_block (uint32_t block_no, uint8_t *data, WriteState *state) {
       }
     }
 
-    if ( bl->blockNo < MAX_BLOCKS ) {
-      uint8_t const mask = 1 << (bl->blockNo % 8);
-      uint32_t const pos = bl->blockNo / 8;
-
-      // only increase written number with new write (possibly prevent overwriting from OS)
-      if ( !(state->writtenMask[pos] & mask) ) {
-        state->writtenMask[pos] |= mask;
-        state->numWritten++;
-        GF_DEBUG("Wrote ");
-        GF_DEBUG_U32(state->numWritten);
-        GF_DEBUG("/");
-        GF_DEBUG_U32_LN(state->numBlocks);
-        CDCWRITEFLUSH();
-      } else {
-    	  GF_DEBUG("Dupe @ ");
-          GF_DEBUG_U32_LN(pos);
-      }
-
-      // flush last blocks
-      // TODO numWritten can be smaller than numBlocks if return early
-      if ( state->numWritten >= state->numBlocks && write_is_complete == false) {
-
-		  GF_DEBUG("UF2 W done ");
-		  if (bs_write_metainfo.bssize) {
-			  GF_DEBUG_LN(bs_write_metainfo.name);
-		  } else {
-			  GF_DEBUG_LN(" no name.");
-		  }
-    	  write_is_complete = true;
-    	  // grab this before playing with flash any further
-    	  uint32_t bs_start_addy = board_first_written_address();
-    	  uint32_t bs_size_written = board_size_written();
-
-
-
-    	  uint32_t boundaries[POSITION_SLOTS_NUM] = {0};
-
-    	  uint8_t slotidx = 0;
-    	  bool foundslot = false;
-    	  for (uint8_t i=0; i<POSITION_SLOTS_NUM; i++) {
-    		  GF_DEBUG("CHKSLT ");
-    		  GF_DEBUG_U32(FLASH_STORAGE_STARTADDRESS(i));
-    		  GF_DEBUG(" - ");
-    		  GF_DEBUG_U32_LN(FLASH_STORAGE_STARTADDRESS(i+1));
-	    	  CDCWRITEFLUSH();
-    		  if (
-    				  (bl->targetAddr >= FLASH_STORAGE_STARTADDRESS(i))
-					  &&
-					  (bl->targetAddr < FLASH_STORAGE_STARTADDRESS(i+1))) {
-    			  GF_DEBUG("Targ in slot ");
-    			  GF_DEBUG_U8_LN(slotidx + 1);
-    			  // CDCWRITESTRING("Target in slot ");
-        		  // cdc_write_dec_u8_ln(slotidx + 1);
-        		  slotidx = i;
-        		  foundslot = true;
-    		  }
-    	  };
-
-    	  if (foundslot == true) {
-    		  if (slotidx != boardconfig_selected_bitstream_slot()) {
-				  CDCWRITESTRING("Wrote UF2 to a new slot: ");
-				  cdc_write_dec_u8_ln(slotidx + 1);
-				  boardconfig_set_bitstream_slot(slotidx);
-				  boardconfig_write();
-    		  }
-        	  bs_write_marker_to_slot(slotidx, state->numBlocks, bs_size_written, bs_start_addy,
-        			  &bs_write_metainfo);
-    	  } else {
-    		  bs_write_marker(state->numBlocks, bs_size_written, bs_start_addy,&bs_write_metainfo);
-    	  }
-
-    	  CDCWRITEFLUSH();
-
-    	  sleep_ms(150);
-    	  uf2_write_complete();
-      }
+    if (bl->familyID != bc->bin_download.family_id) {
+    	GF_DEBUG_LN("Invalid fam");
+    	return -1;
     }
-  }
+
+	// ok looking good: matching/valid family ID
+	if (bl->blockNo < MAX_BLOCKS) {
+
+		uint8_t const mask = 1 << (bl->blockNo % 8);
+		uint32_t const pos = bl->blockNo / 8;
+		// only increase written number with new write (possibly prevent overwriting from OS)
+		if (!(state->writtenMask[pos] & mask)) {
+
+			// ok, not a dupe, do the write
+			board_flash_write(bl->targetAddr, bl->data, bl->payloadSize);
+
+			// and make note of it
+			state->writtenMask[pos] |= mask;
+
+			// increment the number written and our tracking of total payload size
+			state->numWritten++;
+
+			state->payloadTotal += bl->payloadSize;
+			GF_DEBUG("Wrote ");
+			GF_DEBUG_U32(state->numWritten);
+			GF_DEBUG("/");
+			GF_DEBUG_U32_LN(state->numBlocks);
+			CDCWRITEFLUSH();
+		} else {
+			GF_DEBUG("Dupe @ ");
+			GF_DEBUG_U32_LN(pos);
+		}
+
+	}
+
+	if (state->numWritten < state->numBlocks) {
+		// we're not done yet... just wait for more
+		return BPB_SECTOR_SIZE;
+	}
+
+	if (write_is_complete) {
+		// we've already handled final clean-up, this is
+		// some sort of dupe... fuggetaboudit
+		return BPB_SECTOR_SIZE;
+	}
+
+	// handling slot info write, now
+	write_is_complete = true; // don't do twice
+
+	// flush last blocks
+	GF_DEBUG("UF2 W done ");
+	if (bs_write_metainfo.bssize) {
+		GF_DEBUG_LN(bs_write_metainfo.name);
+	} else {
+		GF_DEBUG_LN(" no name.");
+	}
+
+	// grab this before playing with flash any further
+	uint32_t bs_start_addy = board_first_written_address();
+	uint32_t bs_size_written = board_size_written();
+
+	if (bs_size_written == state->payloadTotal) {
+		GF_DEBUG("Wrote payload total size: 0x");GF_DEBUG_U32_LN(bs_size_written);
+	} else {
+		CDCWRITESTRING("Payload size mismatch! ");
+		cdc_write_u32(bs_size_written);
+
+	}
+
+	uint32_t boundaries[POSITION_SLOTS_NUM] = { 0 };
+
+	uint8_t slotidx = 0;
+	bool foundslot = false;
+	for (uint8_t i = 0; i < POSITION_SLOTS_NUM; i++) {
+		GF_DEBUG("CHKSLT ");GF_DEBUG_U32(FLASH_STORAGE_STARTADDRESS(i));GF_DEBUG(" - ");GF_DEBUG_U32_LN(FLASH_STORAGE_STARTADDRESS(i+1));
+		CDCWRITEFLUSH();
+		if ((bl->targetAddr >= FLASH_STORAGE_STARTADDRESS(i))
+				&& (bl->targetAddr < FLASH_STORAGE_STARTADDRESS(i + 1))) {
+			GF_DEBUG("Targ in slot ");GF_DEBUG_U8_LN(slotidx + 1);
+			// CDCWRITESTRING("Target in slot ");
+			// cdc_write_dec_u8_ln(slotidx + 1);
+			slotidx = i;
+			foundslot = true;
+		}
+	};
+
+	if (foundslot == true) {
+		if (slotidx != boardconfig_selected_bitstream_slot()) {
+			CDCWRITESTRING("Wrote UF2 to a new slot: ");
+			cdc_write_dec_u8_ln(slotidx + 1);
+			boardconfig_set_bitstream_slot(slotidx);
+			boardconfig_write();
+		}
+		bs_write_marker_to_slot(slotidx, state->numBlocks, bs_size_written,
+				bs_start_addy, &bs_write_metainfo);
+	} else {
+		bs_write_marker(state->numBlocks, bs_size_written, bs_start_addy,
+				&bs_write_metainfo);
+	}
+	CDCWRITEFLUSH();
+	sleep_ms(150);
+	uf2_write_complete();
+
+
+
 
   return BPB_SECTOR_SIZE;
 }
