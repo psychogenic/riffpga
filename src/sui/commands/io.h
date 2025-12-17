@@ -25,6 +25,7 @@
 #include "sui/sui_util.h"
 
 void cmd_read_io_inputs(SUIInteractionFunctions * funcs);
+void cmd_managedpins_proj_reset(SUIInteractionFunctions * funcs);
 
 
 #endif /* SUI_COMMANDS_IO_H_ */

@@ -26,8 +26,8 @@
 
 
 #define BOARD_VERSION_MAJOR		1
-#define BOARD_VERSION_MINOR		1
-#define BOARD_VERSION_PATCH		5
+#define BOARD_VERSION_MINOR		2
+#define BOARD_VERSION_PATCH		0
 
 #define BRD_STR_HELPER(x) #x
 #define BRD_STR(x) BRD_STR_HELPER(x)

@@ -139,6 +139,19 @@ typedef struct RIF_PACKED_STRUCT syssettingsstruct {
 	uint8_t		input_io[BOARD_MAX_NUM_INPUTS];
 } SystemSettings;
 
+typedef struct RIF_PACKED_STRUCT chipmanageiostruct {
+	uint8_t    enabled;
+	uint8_t    pin;
+	uint8_t    current_logical;
+	uint8_t    inverted;
+} ChipManagementIO; // 4
+
+
+// 4*4 bytes == 16
+typedef struct RIF_PACKED_STRUCT chipManagementPinsstruct {
+	ChipManagementIO	project_reset;
+	ChipManagementIO	reserved[3];
+} ChipManagementPins;
 
 typedef struct RIF_PACKED_STRUCT   board_config_struct {
 	char board_name[BOARD_NAME_CHARS+1]; // 24 bytes
@@ -154,13 +167,15 @@ typedef struct RIF_PACKED_STRUCT   board_config_struct {
 	FPGACRAMConfig	fpga_cram;			// 16
 	FPGA_PWM clocking[2];				// 16*2 = 32
 
+	ChipManagementPins	managed_pins;	// 16
+
 	UART_Bridge uart_bridge; 			// 12
 
 	UserSwitch switches[BOARD_MAX_NUM_SWITCHES];// 8*4 = 32
 	uint8_t user_app_data[8]; 			// 8, free to use by applications, won't be touched by low-level
 	uint8_t reserved[64];				// 64 for future expansions, without impact to user payload below
 										// -----
-										// 264, so 476 - 264 = 212 free bytes in payload
+										// 280, so 476 - 280 = 196 free bytes in payload
 } BoardConfig ;
 
 typedef const BoardConfig const * BoardConfigPtrConst;
@@ -187,6 +202,10 @@ void boardconfig_set_systemclock_hz(uint32_t v);
 void boardconfig_autoclock_enable();
 void boardconfig_autoclock_disable();
 void boardconfig_set_autoclock_hz(uint32_t v);
+
+uint8_t boardconfig_managedpin_set_projreset(uint8_t set);
+uint8_t	 boardconfig_managedpin_projreset(void);
+
 
 
 

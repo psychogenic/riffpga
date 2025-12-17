@@ -33,3 +33,22 @@ void cmd_read_io_inputs(SUIInteractionFunctions *funcs) {
 
 }
 
+
+void cmd_managedpins_proj_reset(SUIInteractionFunctions * funcs) {
+	CDCWRITESTRING("\r\n Toggle PROJECT reset, now: ");
+		if (boardconfig_managedpin_projreset() == 0) {
+			if (! boardconfig_managedpin_set_projreset(1) ) {
+				CDCWRITESTRING("COULD NOT RESET??\r\n");
+			} else {
+				CDCWRITESTRING("in RESET.");
+			}
+		} else {
+			if (! boardconfig_managedpin_set_projreset(0) ) {
+
+				CDCWRITESTRING("COULD NOT RE-ENABLE??\r\n");
+			} else {
+				CDCWRITESTRING("enabled (not reset).");
+			}
+		}
+}
+

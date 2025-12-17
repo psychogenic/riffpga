@@ -27,6 +27,8 @@
 void cmd_set_sys_clock_hz(SUIInteractionFunctions * funcs);
 void cmd_set_autoclock_hz(SUIInteractionFunctions * funcs);
 void cmd_set_autoclock_manual(SUIInteractionFunctions * funcs);
+void cmd_manual_clock_once(SUIInteractionFunctions * funcs);
+
 
 #endif /* SUI_COMMANDS_CLOCKING_H_ */
 

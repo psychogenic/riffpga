@@ -124,6 +124,12 @@ static void fpga_reset_monitor_enable(BoardConfigPtrConst bc, bool do_enable) {
 	}
 
 }
+
+static void fpga_init_cs_line(BoardConfigPtrConst bc) {
+	gpio_init(bc->fpga_cram.spi.pin_cs);
+	gpio_set_dir(bc->fpga_cram.spi.pin_cs, GPIO_OUT);
+	gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted);
+}
 void fpga_init(void) {
 
 	uint8_t spi0_scks[] = { 2, 6, 18, 22, 0xff };
@@ -172,10 +178,7 @@ void fpga_init(void) {
 
 	// NO: do it manual style gpio_set_function(PIN_FPGA_SPI_CS, GPIO_FUNC_SPI);
 
-	gpio_init(bc->fpga_cram.spi.pin_cs);
-	gpio_set_dir(bc->fpga_cram.spi.pin_cs, GPIO_OUT);
-	gpio_put(bc->fpga_cram.spi.pin_cs, bc->fpga_cram.spi.cs_inverted);
-
+    fpga_init_cs_line(bc);
 	fpgastate.is_init = true;
 
 }
@@ -190,6 +193,8 @@ void fpga_FPGA_DEBUG_spi_pins(void) {
 	gpio_set_function(bc->fpga_cram.spi.pin_miso, GPIO_FUNC_NULL);
 	gpio_set_function(bc->fpga_cram.spi.pin_mosi, GPIO_FUNC_NULL);
 	gpio_set_function(bc->fpga_cram.spi.pin_sck, GPIO_FUNC_NULL);
+
+	fpga_init_cs_line(bc);
 
 	gpio_init(bc->fpga_cram.spi.pin_sck);
 	gpio_set_dir(bc->fpga_cram.spi.pin_sck, GPIO_OUT);

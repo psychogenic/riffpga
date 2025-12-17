@@ -129,7 +129,13 @@ void io_inputs_init(void) {
 	for (uint8_t i; i < bconf->system.num_inputs; i++) {
 		gpio_init(bconf->system.input_io[i]);
 		gpio_set_dir(bconf->system.input_io[i], GPIO_IN);
+#ifdef SYSTEM_INPUTS_ENABLE_PULLDOWN
+		gpio_pull_down(bconf->system.input_io[i]);
+#else
 		gpio_pull_up(bconf->system.input_io[i]);
+
+#endif
+
 	}
 
 }

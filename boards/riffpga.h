@@ -11,7 +11,7 @@
 
 // This header may be included by other board headers as "boards/pico.h"
 
-// pico_cmake_set PICO_PLATFORM=rp2040
+// xxxpico_cmake_set PICO_PLATFORM=rp2040
 
 #ifndef _BOARDS_RIFFPGA_H
 #define _BOARDS_RIFFPGA_H

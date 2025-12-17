@@ -49,6 +49,16 @@ TargetOptions = {
                     magicstart=0x951C0634,
                     magicend= 0x1C73C401),
     
+
+    'chipdiscover': UF2Settings(
+                    name='ChipDiscover',
+                    familyDesc='ChipFoundry ChipDiscover',
+                    familyId=0xC417D15C,
+                    magicstart=0x951C0634,
+                    magicend= 0x1C73C401),
+ 
+
+
     'psydmi': UF2Settings(
             name='PsyDMI',
             familyDesc='PsyDMI driver',

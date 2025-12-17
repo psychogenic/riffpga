@@ -73,6 +73,27 @@ void cmd_set_autoclock_hz(SUIInteractionFunctions *funcs) {
 	*/
 
 }
+
+void cmd_manual_clock_once(SUIInteractionFunctions * funcs) {
+
+	BoardConfigPtrConst bc = boardconfig_get();
+	if (bc->clocking[0].enabled) {
+		CDCWRITESTRING("Disabling auto-clock.  ");
+		boardconfig_autoclock_disable();
+		// MainDriverState.clocking_manually = true;
+	}
+	CDCWRITESTRING("Clocking once");
+	gpio_init(bc->clocking[0].pin);
+	gpio_set_dir(bc->clocking[0].pin, GPIO_OUT);
+	gpio_put(bc->clocking[0].pin, 0);
+	funcs->wait();
+	sleep_ms(20);
+	gpio_put(bc->clocking[0].pin, 1);
+	sleep_ms(20);
+	gpio_put(bc->clocking[0].pin, 0);
+
+
+}
 void cmd_set_autoclock_manual(SUIInteractionFunctions *funcs) {
 
 	CDCWRITESTRING("Auto clock was: ");

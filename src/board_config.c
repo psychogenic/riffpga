@@ -249,6 +249,16 @@ void board_config_reinit(void) {
 	memset(bc.board_name, 0, (BOARD_NAME_CHARS+1));
 	memcpy(bc.board_name, BOARD_NAME, sizeof(BOARD_NAME));
 	memset(bc.uart_bridge.breakout_sequence, 0, (UART_BREAKOUT_SEQUENCE_CHARS_MAX + 1));
+
+	memset(&bc.managed_pins, 0, sizeof(ChipManagementPins));
+#ifdef MANAGEDPINS_PROJRESET_PIN
+	bc.managed_pins.project_reset.enabled = 1;
+	bc.managed_pins.project_reset.pin = MANAGEDPINS_PROJRESET_PIN;
+	bc.managed_pins.project_reset.inverted = MANAGEDPINS_PROJRESET_INVERTED;
+#endif
+
+
+
 	bc.uart_bridge.breakout_sequence[0] = UART_BRIDGE_ESCAPE_SEQUENCE0;
 	bc.uart_bridge.breakout_sequence[1] = UART_BRIDGE_ESCAPE_SEQUENCE1;
 	bc.uart_bridge.breakout_sequence[2] = UART_BRIDGE_ESCAPE_SEQUENCE2;
@@ -275,6 +285,8 @@ void board_config_reinit(void) {
 	bc.clocking[1].div = 1;  // arbitrary
 	bc.clocking[1].top = 0xff; // arbitrary
 	bc.clocking[1].pin = PIN_AUTOCLOCK2;
+
+
 
 	bc.switches[USER_SWITCH_IDX_RESET].function = USER_SWITCH_RESET_FUNCTION;
 	bc.switches[USER_SWITCH_IDX_RESET].pin = USER_SWITCH_RESET_PIN;
@@ -368,6 +380,33 @@ void boardconfig_set_autoclock_hz(uint32_t v) {
 		clock_pwm_enable(pwmconf);
 		clock_pwm_set_freq(v, pwmconf);
 	}
+}
+
+
+uint8_t boardconfig_managedpin_set_projreset(uint8_t set) {
+	static uint8_t preset_init = 0;
+	if (! _board_conf_singleton_ptr->managed_pins.project_reset.enabled) {
+		return false;
+	}
+
+	if (! preset_init) {
+		gpio_init(_board_conf_singleton_ptr->managed_pins.project_reset.pin);
+		gpio_set_dir(_board_conf_singleton_ptr->managed_pins.project_reset.pin, GPIO_OUT);
+	}
+
+	gpio_put(_board_conf_singleton_ptr->managed_pins.project_reset.pin,
+			set ?
+					!_board_conf_singleton_ptr->managed_pins.project_reset.inverted
+					:
+					_board_conf_singleton_ptr->managed_pins.project_reset.inverted);
+
+
+	_board_conf_singleton_ptr->managed_pins.project_reset.current_logical = set;
+
+	return true;
+}
+uint8_t boardconfig_managedpin_projreset(void) {
+	return _board_conf_singleton_ptr->managed_pins.project_reset.current_logical;
 }
 
 uint8_t boardconfig_selected_bitstream_slot(void) {

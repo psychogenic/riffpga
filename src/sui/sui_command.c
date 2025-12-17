@@ -76,6 +76,13 @@ static CommandInfo commands[] = {
 				.cb = cmd_set_autoclock_hz
 		},
 		{
+				.command = "clockonce",
+				.help = "Single Step Clock",
+				.hotkey = 'O',
+				.needs_confirmation = false,
+				.cb = cmd_manual_clock_once
+		},
+		{
 				.command = "manualclock",
 				.help = "Stop Auto-Clocking",
 				.hotkey = 'M',
@@ -133,6 +140,16 @@ static CommandInfo commands[] = {
 				.hotkey = 'I',
 				.needs_confirmation = false,
 				.cb = cmd_read_io_inputs
+		},
+#endif
+
+#ifdef MANAGEDPINS_PROJRESET_PIN
+		{
+				.command = "projreset",
+				.help = "Project Reset",
+				.hotkey = 'J',
+				.needs_confirmation = false,
+				.cb = cmd_managedpins_proj_reset
 		},
 #endif
 

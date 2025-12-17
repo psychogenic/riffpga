@@ -210,6 +210,21 @@ static void uf2_magic_info(BoardConfigPtrConst bc,
 	CDCWRITEFLUSH();
 }
 
+static void dump_managedpins_projreset(BoardConfigPtrConst bc,
+		SUIInteractionFunctions *funcs) {
+
+	if (bc->managed_pins.project_reset.enabled) {
+		CDCWRITESTRING(" Project Reset\r\n   Pin:");
+		cdc_write_dec_u8(bc->managed_pins.project_reset.pin);
+		CDCWRITESTRING(" State: ");
+		if (bc->managed_pins.project_reset.current_logical) {
+			CDCWRITESTRING(" ON (in reset)\r\n");
+		} else {
+			CDCWRITESTRING(" OFF (enabled/not reset)\r\n");
+		}
+
+	}
+}
 
 static void dump_bitstream_info(BoardConfigPtrConst bc,
 		SUIInteractionFunctions *funcs) {
@@ -272,12 +287,12 @@ void cmd_dump_state(SUIInteractionFunctions *funcs) {
 
 
 	funcs->wait();
+	dump_managedpins_projreset(bc, funcs);
 	dump_clocks(bc, funcs);
 	dump_cram_conf(bc, funcs);
-	dump_uart_conf(bc, funcs);
-
 	CDCWRITEFLUSH();
 	funcs->wait();
+	dump_uart_conf(bc, funcs);
 
 	dump_switches_conf(bc, funcs);
 	uf2_magic_info(bc, funcs);

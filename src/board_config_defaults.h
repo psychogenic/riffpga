@@ -29,6 +29,8 @@
 #include "config_defaults/efab_explain.h"
 #elif defined(TARGET_PSYDMI)
 #include "config_defaults/psydmi.h"
+#elif defined(TARGET_CHIPFOUNDRY_CHIPDISCOVER)
+#include "config_defaults/chipdiscover.h"
 #else
 #error "provide a TARGET_* for config defaults"
 #endif

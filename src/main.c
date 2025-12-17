@@ -99,6 +99,8 @@ void setup(void) {
 	io_inputs_init();
 	io_switches_init();
 
+	boardconfig_managedpin_set_projreset(0);
+
 	if (io_manualclock_switch_state()) {
 		CDCWRITESTRING("Requested MANUAL clocking\r\n");
 		boardconfig_set_autoclock_hz(0);
