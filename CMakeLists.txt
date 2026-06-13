@@ -8,6 +8,7 @@ cmake_minimum_required(VERSION 3.17)
 #	 TARGET_GENERIC
 #	 TARGET_PSYDMI and
 # 	 TARGET_EFABLESS_EXPLAIN
+#	 TARGET_CHIPFOUNDRY_CHIPDISCOVER
 #  ... probably a better way to do this.
 
 # Initialise pico_sdk from installed location
@@ -19,6 +20,7 @@ OPTION(PICO_SDK_PATH "Path to pico SDK")
 OPTION(TARGET_PSYDMI "Build for PsyDMI" OFF)
 OPTION(TARGET_GENERIC "Build generic" OFF)
 OPTION(TARGET_EFABLESS_EXPLAIN "Build for efab explain" OFF)
+OPTION(TARGET_CHIPFOUNDRY_CHIPDISCOVER "Build for ChipDiscover explain" OFF)
 
 
 set(CMAKE_C_STANDARD 11)
@@ -27,7 +29,11 @@ set(CMAKE_CXX_STANDARD 17)
 
 
 
+if (TARGET_CHIPFOUNDRY_CHIPDISCOVER)
+set(FAMILY rp2350)
+else()
 set(FAMILY rp2040)
+endif()
 set(BOARD pico_sdk)
 set(TINYUSB_FAMILY_PROJECT_NAME_PREFIX "tinyusb_dev_")
 # Provide an LWIP path for net_lwip_webserver in case the module does not exist in tinyusb
@@ -61,6 +67,15 @@ if (TARGET_PSYDMI)
 	add_compile_definitions(TARGET_PSYDMI)
 	set(PROJ_SUFFIX "psydmi")
 endif(TARGET_PSYDMI)
+
+
+if (TARGET_CHIPFOUNDRY_CHIPDISCOVER)
+	add_compile_definitions(TARGET_CHIPFOUNDRY_CHIPDISCOVER)
+	set(PROJ_SUFFIX "chipdiscover")
+endif(TARGET_CHIPFOUNDRY_CHIPDISCOVER)
+
+
+
 
 set(PROJNAME "riffpga_${PROJ_SUFFIX}")
 set(EXENAME "riffpga_${PROJ_SUFFIX}")
